@@ -16,12 +16,14 @@ if __name__ == "__main__":
     print("   • Admin Panel:    http://localhost:8000/admin")
     print("   • API Docs:       http://localhost:8000/docs")
     print()
+    print("💡 Development mode: Auto-reload enabled")
     print("Press Ctrl+C to stop the server")
     print("-" * 60)
     print()
     
     try:
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=False)
+        # reload=True enables auto-reload for development
+        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
     except KeyboardInterrupt:
         print("\n\nServer stopped.")
         sys.exit(0)

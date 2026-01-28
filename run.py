@@ -12,7 +12,6 @@ import sys
 import signal
 import os
 import threading
-import time
 from datetime import datetime
 
 
@@ -30,6 +29,10 @@ def log_prefix(service_name: str, color_code: str = "") -> str:
 def stream_output(process, service_name: str, color_code: str):
     """Stream output from a subprocess in real-time"""
     try:
+        if process.stdout is None:
+            print(f"{log_prefix(service_name, color_code)}Error: stdout is not available")
+            return
+            
         for line in iter(process.stdout.readline, b''):
             if shutdown_event.is_set():
                 break
@@ -40,6 +43,13 @@ def stream_output(process, service_name: str, color_code: str):
     except Exception as e:
         if not shutdown_event.is_set():
             print(f"{log_prefix(service_name, color_code)}Error reading output: {e}")
+
+
+def get_process_env():
+    """Get environment with unbuffered output enabled"""
+    env = os.environ.copy()
+    env['PYTHONUNBUFFERED'] = '1'
+    return env
 
 
 def signal_handler(sig, frame):
@@ -89,15 +99,11 @@ async def main():
     # Start FastAPI server
     print(f"{log_prefix('SETUP', '\033[96m')}Starting FastAPI server...")
     
-    # Set environment to disable output buffering
-    env = os.environ.copy()
-    env['PYTHONUNBUFFERED'] = '1'
-    
     fastapi_proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        env=env,
+        env=get_process_env(),
         universal_newlines=False
     )
     processes.append(fastapi_proc)
@@ -117,15 +123,11 @@ async def main():
     if bot_enabled:
         print(f"{log_prefix('SETUP', '\033[96m')}Starting Telegram bot...")
         
-        # Set environment to disable output buffering
-        env = os.environ.copy()
-        env['PYTHONUNBUFFERED'] = '1'
-        
         bot_proc = subprocess.Popen(
             [sys.executable, "-m", "bot.bot"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            env=env,
+            env=get_process_env(),
             universal_newlines=False
         )
         processes.append(bot_proc)
@@ -155,8 +157,8 @@ async def main():
         print(f"   • Telegram Bot:   Active and polling")
     else:
         print(f"   • Telegram Bot:   Not configured (set BOT_TOKEN in .env)")
-    print()
-    print("💡 Tip: Set BOT_TOKEN in .env file to enable the Telegram bot")
+        print()
+        print("💡 Tip: Set BOT_TOKEN in .env file to enable the Telegram bot")
     print()
     print("Press Ctrl+C to stop all services")
     print("-" * 60)
@@ -172,9 +174,11 @@ async def main():
                 if proc.poll() is not None:
                     print(f"\n⚠️  Warning: A service has stopped unexpectedly!")
                     print(f"   Exit code: {proc.returncode}")
-                    shutdown_event.set()
-                    break
+                    # Trigger shutdown
+                    signal_handler(signal.SIGTERM, None)
+                    return
     except KeyboardInterrupt:
+        # This won't execute due to signal handler, but kept for clarity
         pass
 
 
