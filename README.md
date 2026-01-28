@@ -172,7 +172,46 @@ task_tg_mini_app/
 
 ## Running the Application
 
-### Option 1: Run Both Services Separately
+### Option 1: Run All Services Together (Recommended)
+
+Run all three components (Web App, Admin Panel, and Bot) with a single command:
+
+**Using Python:**
+```bash
+python run.py
+```
+
+**Or using the shell script:**
+```bash
+./start.sh
+```
+
+This will start:
+- 🌐 FastAPI Web App (Mini-App) at http://localhost:8000/miniapp
+- 👨‍💼 Admin Panel at http://localhost:8000/admin
+- 🤖 Telegram Bot (if BOT_TOKEN is configured)
+
+The script provides:
+- ✨ Real-time colored output from all services
+- 📊 Process monitoring and health checks
+- 🛑 Graceful shutdown with Ctrl+C
+- 📍 Clear access points and service status
+
+### Option 2: Run Services Individually
+
+**Run only the Web App + Admin Panel:**
+```bash
+python run_app.py
+```
+Access at http://localhost:8000/admin and http://localhost:8000/miniapp
+
+**Run only the Telegram Bot:**
+```bash
+python run_bot.py
+```
+Requires BOT_TOKEN to be set in .env
+
+### Option 3: Run Services Separately (Manual)
 
 **Terminal 1 - Start FastAPI Server:**
 ```bash
@@ -185,7 +224,7 @@ The admin panel will be available at http://localhost:8000
 python -m bot.bot
 ```
 
-### Option 2: Run with Uvicorn (FastAPI only)
+### Option 4: Run with Uvicorn (FastAPI only, development)
 ```bash
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
