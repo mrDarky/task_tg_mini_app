@@ -24,7 +24,22 @@ WEB_APP_URL=http://localhost:8000
 
 ### 3. Start Services
 
-**Option A: Run Both Services (Recommended)**
+**Option A: Run All Services Together (Easiest)**
+```bash
+python run.py
+```
+This starts all three components (Web App, Admin Panel, Bot) in one command with real-time logs.
+
+**Option B: Run Individual Components**
+```bash
+# Only Web App + Admin Panel
+python run_app.py
+
+# Only Telegram Bot
+python run_bot.py
+```
+
+**Option C: Run Manually in Separate Terminals**
 ```bash
 # Terminal 1 - Start FastAPI Server
 python main.py
@@ -33,14 +48,12 @@ python main.py
 python -m bot.bot
 ```
 
-**Option B: Run Separately**
+**Option D: Development Mode (FastAPI only)**
 ```bash
-# Only FastAPI Server
+# Only FastAPI Server with auto-reload
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Only Telegram Bot
-python bot/bot.py
 ```
+
 
 ## Access Points
 
