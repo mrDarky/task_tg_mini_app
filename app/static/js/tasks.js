@@ -1,0 +1,277 @@
+let currentPage = 0;
+let currentSearch = '';
+let currentType = '';
+let currentStatus = '';
+const limit = 20;
+
+async function loadTasks() {
+    try {
+        const params = new URLSearchParams({
+            skip: currentPage * limit,
+            limit: limit
+        });
+        
+        if (currentSearch) params.append('search', currentSearch);
+        if (currentType) params.append('task_type', currentType);
+        if (currentStatus) params.append('status', currentStatus);
+        
+        const response = await fetch(`/api/tasks?${params}`);
+        const data = await response.json();
+        
+        displayTasks(data.tasks);
+        updatePagination(data.total);
+    } catch (error) {
+        console.error('Error loading tasks:', error);
+        showAlert('Error loading tasks', 'danger');
+    }
+}
+
+function displayTasks(tasks) {
+    const tbody = document.getElementById('tasks-table-body');
+    
+    if (tasks.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No tasks found</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = tasks.map(task => `
+        <tr>
+            <td><input type="checkbox" class="task-checkbox" value="${task.id}"></td>
+            <td>${task.id}</td>
+            <td>${task.title}</td>
+            <td><span class="badge bg-info">${task.type}</span></td>
+            <td><span class="badge bg-warning">${task.reward} ⭐</span></td>
+            <td><span class="badge bg-${task.status === 'active' ? 'success' : 'secondary'}">${task.status}</span></td>
+            <td>${task.category_id || 'N/A'}</td>
+            <td>${formatDate(task.created_at)}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-primary" onclick="editTask(${task.id})">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-danger" onclick="deleteTask(${task.id})">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+    
+    updateBulkButtons();
+}
+
+function updatePagination(total) {
+    const totalPages = Math.ceil(total / limit);
+    const pagination = document.getElementById('pagination');
+    
+    if (totalPages <= 1) {
+        pagination.innerHTML = '';
+        return;
+    }
+    
+    let html = '';
+    
+    if (currentPage > 0) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a></li>`;
+    }
+    
+    for (let i = 0; i < totalPages; i++) {
+        if (i === currentPage) {
+            html += `<li class="page-item active"><a class="page-link" href="#">${i + 1}</a></li>`;
+        } else if (Math.abs(i - currentPage) < 3 || i === 0 || i === totalPages - 1) {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${i}); return false;">${i + 1}</a></li>`;
+        } else if (Math.abs(i - currentPage) === 3) {
+            html += `<li class="page-item disabled"><a class="page-link" href="#">...</a></li>`;
+        }
+    }
+    
+    if (currentPage < totalPages - 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a></li>`;
+    }
+    
+    pagination.innerHTML = html;
+}
+
+function changePage(page) {
+    currentPage = page;
+    loadTasks();
+}
+
+async function createTask() {
+    const data = {
+        title: document.getElementById('create-title').value,
+        description: document.getElementById('create-description').value,
+        type: document.getElementById('create-type').value,
+        url: document.getElementById('create-url').value,
+        reward: parseInt(document.getElementById('create-reward').value),
+        status: 'active'
+    };
+    
+    try {
+        const response = await fetch('/api/tasks/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showAlert('Task created successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('createTaskModal')).hide();
+            document.getElementById('create-task-form').reset();
+            loadTasks();
+        } else {
+            showAlert('Error creating task', 'danger');
+        }
+    } catch (error) {
+        console.error('Error creating task:', error);
+        showAlert('Error creating task', 'danger');
+    }
+}
+
+async function editTask(taskId) {
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`);
+        const task = await response.json();
+        
+        document.getElementById('edit-task-id').value = task.id;
+        document.getElementById('edit-title').value = task.title;
+        document.getElementById('edit-description').value = task.description || '';
+        document.getElementById('edit-type').value = task.type;
+        document.getElementById('edit-url').value = task.url || '';
+        document.getElementById('edit-reward').value = task.reward;
+        document.getElementById('edit-status').value = task.status;
+        
+        const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error loading task:', error);
+        showAlert('Error loading task', 'danger');
+    }
+}
+
+async function saveTask() {
+    const taskId = document.getElementById('edit-task-id').value;
+    const data = {
+        title: document.getElementById('edit-title').value,
+        description: document.getElementById('edit-description').value,
+        type: document.getElementById('edit-type').value,
+        url: document.getElementById('edit-url').value,
+        reward: parseInt(document.getElementById('edit-reward').value),
+        status: document.getElementById('edit-status').value
+    };
+    
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+            showAlert('Task updated successfully', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('editTaskModal')).hide();
+            loadTasks();
+        } else {
+            showAlert('Error updating task', 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving task:', error);
+        showAlert('Error saving task', 'danger');
+    }
+}
+
+async function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    
+    try {
+        const response = await fetch(`/api/tasks/${taskId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            showAlert('Task deleted successfully', 'success');
+            loadTasks();
+        } else {
+            showAlert('Error deleting task', 'danger');
+        }
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        showAlert('Error deleting task', 'danger');
+    }
+}
+
+function getSelectedTaskIds() {
+    const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+    return Array.from(checkboxes).map(cb => parseInt(cb.value));
+}
+
+function updateBulkButtons() {
+    const selectedIds = getSelectedTaskIds();
+    const hasSelection = selectedIds.length > 0;
+    
+    document.getElementById('bulk-deactivate-btn').disabled = !hasSelection;
+    document.getElementById('bulk-activate-btn').disabled = !hasSelection;
+}
+
+async function bulkUpdateStatus(status) {
+    const taskIds = getSelectedTaskIds();
+    if (taskIds.length === 0) return;
+    
+    try {
+        const response = await fetch('/api/tasks/bulk-update', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                task_ids: taskIds,
+                update_data: {status: status}
+            })
+        });
+        
+        if (response.ok) {
+            showAlert(`${taskIds.length} tasks updated`, 'success');
+            loadTasks();
+        } else {
+            showAlert('Error in bulk operation', 'danger');
+        }
+    } catch (error) {
+        console.error('Error in bulk update:', error);
+        showAlert('Error in bulk operation', 'danger');
+    }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    loadTasks();
+    
+    document.getElementById('search-btn').addEventListener('click', () => {
+        currentSearch = document.getElementById('search-input').value;
+        currentType = document.getElementById('type-filter').value;
+        currentStatus = document.getElementById('status-filter').value;
+        currentPage = 0;
+        loadTasks();
+    });
+    
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('search-btn').click();
+        }
+    });
+    
+    document.getElementById('select-all').addEventListener('change', (e) => {
+        document.querySelectorAll('.task-checkbox').forEach(cb => {
+            cb.checked = e.target.checked;
+        });
+        updateBulkButtons();
+    });
+    
+    document.getElementById('tasks-table-body').addEventListener('change', (e) => {
+        if (e.target.classList.contains('task-checkbox')) {
+            updateBulkButtons();
+        }
+    });
+    
+    document.getElementById('create-task-btn').addEventListener('click', createTask);
+    document.getElementById('save-task-btn').addEventListener('click', saveTask);
+    document.getElementById('bulk-deactivate-btn').addEventListener('click', () => bulkUpdateStatus('inactive'));
+    document.getElementById('bulk-activate-btn').addEventListener('click', () => bulkUpdateStatus('active'));
+});
