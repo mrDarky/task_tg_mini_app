@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task App - Rewards</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/miniapp/css/miniapp.css">
+</head>
+<body>
+    <div class="container-fluid p-0 pb-5">
+        <!-- Header -->
+        <div class="header bg-primary text-white p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">🎁 Rewards</h5>
+                <div class="star-balance">
+                    <i class="bi bi-star-fill text-warning"></i>
+                    <span id="starBalance" class="fw-bold">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs px-3 pt-3" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#catalog">Catalog</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#withdrawal">Withdraw</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#history">History</a>
+            </li>
+        </ul>
+
+        <div class="tab-content p-3">
+            <!-- Catalog Tab -->
+            <div class="tab-pane fade show active" id="catalog">
+                <h6 class="mb-3">Redeemable Items</h6>
+                <div id="rewardCatalog" class="row g-3">
+                    <!-- Reward items will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Withdrawal Tab -->
+            <div class="tab-pane fade" id="withdrawal">
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h6 class="mb-3">💰 Withdraw Stars</h6>
+                        <p class="text-muted small">Convert your stars to real money or gift cards</p>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Withdrawal Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">⭐</span>
+                                <input type="number" class="form-control" id="withdrawalAmount" placeholder="Enter amount" min="100">
+                            </div>
+                            <small class="text-muted">Minimum: 100 stars</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Withdrawal Method</label>
+                            <select class="form-select" id="withdrawalMethod">
+                                <option value="">Select method...</option>
+                                <option value="paypal">PayPal</option>
+                                <option value="crypto">Cryptocurrency</option>
+                                <option value="giftcard">Gift Card</option>
+                                <option value="bank">Bank Transfer</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Details</label>
+                            <textarea class="form-control" id="withdrawalDetails" rows="2" placeholder="Enter payment details..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary w-100" id="submitWithdrawal">
+                            Submit Withdrawal Request
+                        </button>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    <strong>Note:</strong> Withdrawal requests are processed within 3-5 business days.
+                </div>
+            </div>
+
+            <!-- Transaction History Tab -->
+            <div class="tab-pane fade" id="history">
+                <h6 class="mb-3">Transaction History</h6>
+                <div id="transactionHistory">
+                    <!-- Transaction history will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Partner Offers -->
+        <div class="m-3">
+            <h6 class="mb-2">🤝 Partner Offers</h6>
+            <div id="partnerOffers" class="d-flex flex-column gap-2">
+                <!-- Partner offers will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav fixed-bottom bg-white border-top">
+            <div class="d-flex justify-content-around py-2">
+                <a href="/miniapp/home" class="nav-link">
+                    <i class="bi bi-house"></i>
+                    <small>Home</small>
+                </a>
+                <a href="/miniapp/tasks" class="nav-link">
+                    <i class="bi bi-list-task"></i>
+                    <small>Tasks</small>
+                </a>
+                <a href="/miniapp/profile" class="nav-link">
+                    <i class="bi bi-person"></i>
+                    <small>Profile</small>
+                </a>
+                <a href="/miniapp/rewards" class="nav-link active">
+                    <i class="bi bi-gift-fill"></i>
+                    <small>Rewards</small>
+                </a>
+            </div>
+        </nav>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/miniapp/js/miniapp-common.js"></script>
+    <script src="/static/miniapp/js/miniapp-rewards.js"></script>
+</body>
+</html>

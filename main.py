@@ -92,6 +92,33 @@ async def admin_moderation(request: Request):
     return templates.TemplateResponse("moderation.html", {"request": request})
 
 
+# Mini-app routes
+@app.get("/miniapp", response_class=HTMLResponse)
+@app.get("/miniapp/home", response_class=HTMLResponse)
+async def miniapp_home(request: Request):
+    return templates.TemplateResponse("miniapp_home.html", {"request": request})
+
+
+@app.get("/miniapp/tasks", response_class=HTMLResponse)
+async def miniapp_tasks(request: Request):
+    return templates.TemplateResponse("miniapp_tasks.html", {"request": request})
+
+
+@app.get("/miniapp/profile", response_class=HTMLResponse)
+async def miniapp_profile(request: Request):
+    return templates.TemplateResponse("miniapp_profile.html", {"request": request})
+
+
+@app.get("/miniapp/rewards", response_class=HTMLResponse)
+async def miniapp_rewards(request: Request):
+    return templates.TemplateResponse("miniapp_rewards.html", {"request": request})
+
+
+@app.get("/miniapp/task/{task_id}", response_class=HTMLResponse)
+async def miniapp_task_detail(request: Request, task_id: int):
+    return templates.TemplateResponse("miniapp_task_detail.html", {"request": request, "task_id": task_id})
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}

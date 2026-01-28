@@ -22,6 +22,7 @@ class Database:
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 telegram_id INTEGER UNIQUE NOT NULL,
                 username TEXT,
+                referral_code TEXT UNIQUE,
                 stars INTEGER DEFAULT 0,
                 status TEXT DEFAULT 'active',
                 role TEXT DEFAULT 'user',
@@ -178,6 +179,91 @@ class Database:
                 admin_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Referrals table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS referrals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                referrer_id INTEGER NOT NULL,
+                referred_id INTEGER NOT NULL,
+                bonus_awarded BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (referrer_id) REFERENCES users (id) ON DELETE CASCADE,
+                FOREIGN KEY (referred_id) REFERENCES users (id) ON DELETE CASCADE,
+                UNIQUE(referred_id)
+            )
+        """)
+        
+        # Daily bonuses table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS daily_bonuses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                bonus_amount INTEGER NOT NULL,
+                streak_count INTEGER DEFAULT 1,
+                claimed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Achievements table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                description TEXT,
+                icon TEXT,
+                requirement_type TEXT NOT NULL,
+                requirement_value INTEGER NOT NULL,
+                reward_stars INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # User achievements table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS user_achievements (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                achievement_id INTEGER NOT NULL,
+                earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                FOREIGN KEY (achievement_id) REFERENCES achievements (id) ON DELETE CASCADE,
+                UNIQUE(user_id, achievement_id)
+            )
+        """)
+        
+        # User settings table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS user_settings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                language TEXT DEFAULT 'en',
+                notifications_enabled BOOLEAN DEFAULT 1,
+                task_notifications BOOLEAN DEFAULT 1,
+                reward_notifications BOOLEAN DEFAULT 1,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Task submissions table (for screenshot verification)
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS task_submissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                task_id INTEGER NOT NULL,
+                submission_type TEXT DEFAULT 'screenshot',
+                file_id TEXT,
+                file_path TEXT,
+                status TEXT DEFAULT 'pending',
+                admin_notes TEXT,
+                submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                reviewed_at TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE
             )
         """)
         
