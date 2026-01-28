@@ -27,6 +27,8 @@ WEB_APP_URL=http://localhost:8000
 **Option A: Run All Services Together (Easiest)**
 ```bash
 python run.py
+# Or simply:
+./start.sh
 ```
 This starts all three components (Web App, Admin Panel, Bot) in one command with real-time logs.
 

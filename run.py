@@ -88,11 +88,17 @@ async def main():
     
     # Start FastAPI server
     print(f"{log_prefix('SETUP', '\033[96m')}Starting FastAPI server...")
+    
+    # Set environment to disable output buffering
+    env = os.environ.copy()
+    env['PYTHONUNBUFFERED'] = '1'
+    
     fastapi_proc = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        bufsize=1
+        env=env,
+        universal_newlines=False
     )
     processes.append(fastapi_proc)
     
@@ -110,11 +116,17 @@ async def main():
     # Start Telegram bot if token is configured
     if bot_enabled:
         print(f"{log_prefix('SETUP', '\033[96m')}Starting Telegram bot...")
+        
+        # Set environment to disable output buffering
+        env = os.environ.copy()
+        env['PYTHONUNBUFFERED'] = '1'
+        
         bot_proc = subprocess.Popen(
             [sys.executable, "-m", "bot.bot"],
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
-            bufsize=1
+            env=env,
+            universal_newlines=False
         )
         processes.append(bot_proc)
         

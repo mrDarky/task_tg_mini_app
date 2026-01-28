@@ -176,8 +176,14 @@ task_tg_mini_app/
 
 Run all three components (Web App, Admin Panel, and Bot) with a single command:
 
+**Using Python:**
 ```bash
 python run.py
+```
+
+**Or using the shell script:**
+```bash
+./start.sh
 ```
 
 This will start:
