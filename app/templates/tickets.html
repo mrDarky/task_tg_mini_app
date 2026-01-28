@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Help Desk/Tickets - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Help Desk / Support Tickets</h1>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <select class="form-select" id="statusFilter" onchange="loadTickets()">
+            <option value="">All Status</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="priorityFilter" onchange="loadTickets()">
+            <option value="">All Priority</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+        </select>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div id="tickets-list">Loading...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadTickets() {
+    const status = document.getElementById('statusFilter').value;
+    const priority = document.getElementById('priorityFilter').value;
+    
+    let url = '/api/tickets?';
+    if (status) url += `status=${status}&`;
+    if (priority) url += `priority=${priority}&`;
+    
+    try {
+        const response = await fetch(url);
+        const tickets = await response.json();
+        
+        const container = document.getElementById('tickets-list');
+        if (tickets.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No tickets found</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User ID</th>
+                        <th>Subject</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tickets.map(t => `
+                        <tr>
+                            <td>${t.id}</td>
+                            <td>${t.user_id}</td>
+                            <td>${t.subject}</td>
+                            <td><span class="badge bg-${getPriorityColor(t.priority)}">${t.priority}</span></td>
+                            <td><span class="badge bg-${getStatusColor(t.status)}">${t.status}</span></td>
+                            <td>${new Date(t.created_at).toLocaleDateString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="viewTicket(${t.id})">View</button>
+                                ${t.status === 'open' ? `
+                                    <button class="btn btn-sm btn-success" onclick="resolveTicket(${t.id})">Resolve</button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (error) {
+        console.error('Error loading tickets:', error);
+    }
+}
+
+function getPriorityColor(priority) {
+    const colors = { low: 'secondary', medium: 'info', high: 'warning', urgent: 'danger' };
+    return colors[priority] || 'secondary';
+}
+
+function getStatusColor(status) {
+    const colors = { open: 'danger', in_progress: 'warning', resolved: 'success', closed: 'secondary' };
+    return colors[status] || 'secondary';
+}
+
+function viewTicket(id) {
+    alert('Ticket details view would open here. ID: ' + id);
+}
+
+async function resolveTicket(id) {
+    if (!confirm('Mark this ticket as resolved?')) return;
+    
+    try {
+        const response = await fetch(`/api/tickets/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'resolved' })
+        });
+        
+        if (response.ok) {
+            loadTickets();
+        }
+    } catch (error) {
+        console.error('Error resolving ticket:', error);
+    }
+}
+
+loadTickets();
+</script>
+{% endblock %}

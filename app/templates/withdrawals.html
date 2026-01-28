@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Withdrawal Management - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Withdrawal Management</h1>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Pending</h6>
+                <h3 id="pending-count">0</h3>
+                <small id="pending-amount" class="text-muted">0 stars</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Approved</h6>
+                <h3 id="approved-count" class="text-success">0</h3>
+                <small id="approved-amount" class="text-muted">0 stars</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <h6 class="text-muted">Rejected</h6>
+                <h3 id="rejected-count" class="text-danger">0</h3>
+                <small id="rejected-amount" class="text-muted">0 stars</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Withdrawal Requests</h5>
+    </div>
+    <div class="card-body">
+        <div id="withdrawals-list">Loading...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadWithdrawals() {
+    try {
+        const response = await fetch('/api/withdrawals');
+        const withdrawals = await response.json();
+        
+        const container = document.getElementById('withdrawals-list');
+        if (withdrawals.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No withdrawal requests</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>User ID</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${withdrawals.map(w => `
+                        <tr>
+                            <td>${w.id}</td>
+                            <td>${w.user_id}</td>
+                            <td><span class="badge bg-warning">${w.amount}</span></td>
+                            <td>${w.method || '-'}</td>
+                            <td><span class="badge bg-${w.status === 'pending' ? 'warning' : w.status === 'approved' ? 'success' : 'danger'}">${w.status}</span></td>
+                            <td>${new Date(w.created_at).toLocaleDateString()}</td>
+                            <td>
+                                ${w.status === 'pending' ? `
+                                    <button class="btn btn-sm btn-success" onclick="approveWithdrawal(${w.id})">Approve</button>
+                                    <button class="btn btn-sm btn-danger" onclick="rejectWithdrawal(${w.id})">Reject</button>
+                                ` : '-'}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (error) {
+        console.error('Error loading withdrawals:', error);
+    }
+}
+
+async function loadStats() {
+    try {
+        const response = await fetch('/api/withdrawals/stats/summary');
+        const stats = await response.json();
+        
+        document.getElementById('pending-count').textContent = stats.pending.count;
+        document.getElementById('pending-amount').textContent = stats.pending.total + ' stars';
+        document.getElementById('approved-count').textContent = stats.approved.count;
+        document.getElementById('approved-amount').textContent = stats.approved.total + ' stars';
+        document.getElementById('rejected-count').textContent = stats.rejected.count;
+        document.getElementById('rejected-amount').textContent = stats.rejected.total + ' stars';
+    } catch (error) {
+        console.error('Error loading stats:', error);
+    }
+}
+
+async function approveWithdrawal(id) {
+    if (!confirm('Approve this withdrawal?')) return;
+    
+    try {
+        const response = await fetch(`/api/withdrawals/${id}?admin_id=1`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'approved' })
+        });
+        
+        if (response.ok) {
+            loadWithdrawals();
+            loadStats();
+        }
+    } catch (error) {
+        console.error('Error approving withdrawal:', error);
+    }
+}
+
+async function rejectWithdrawal(id) {
+    if (!confirm('Reject this withdrawal?')) return;
+    
+    try {
+        const response = await fetch(`/api/withdrawals/${id}?admin_id=1`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'rejected' })
+        });
+        
+        if (response.ok) {
+            loadWithdrawals();
+            loadStats();
+        }
+    } catch (error) {
+        console.error('Error rejecting withdrawal:', error);
+    }
+}
+
+loadWithdrawals();
+loadStats();
+</script>
+{% endblock %}

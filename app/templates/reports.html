@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block title %}Reports & Analytics - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Reports & Analytics</h1>
+    </div>
+</div>
+
+<!-- Tabs for different reports -->
+<ul class="nav nav-tabs mb-4" id="reportTabs">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#engagement">User Engagement</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#rewards">Reward Trends</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tasks">Task Performance</a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#categories">Category Analytics</a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- User Engagement Tab -->
+    <div class="tab-pane fade show active" id="engagement">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">Daily Active</h6>
+                        <h2 id="daily-active">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">Weekly Active</h6>
+                        <h2 id="weekly-active">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">Monthly Active</h6>
+                        <h2 id="monthly-active">0</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h6 class="text-muted">Total Users</h6>
+                        <h2 id="total-users-engagement">0</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Engagement Rates</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="engagement-rates"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reward Trends Tab -->
+    <div class="tab-pane fade" id="rewards">
+        <div class="card">
+            <div class="card-header">
+                <h5>Top Earners</h5>
+            </div>
+            <div class="card-body">
+                <div id="top-earners"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Performance Tab -->
+    <div class="tab-pane fade" id="tasks">
+        <div class="card">
+            <div class="card-header">
+                <h5>Task Performance Metrics</h5>
+            </div>
+            <div class="card-body">
+                <div id="task-performance"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Analytics Tab -->
+    <div class="tab-pane fade" id="categories">
+        <div class="card">
+            <div class="card-header">
+                <h5>Category Popularity</h5>
+            </div>
+            <div class="card-body">
+                <div id="category-analytics"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadUserEngagement() {
+    try {
+        const response = await fetch('/api/reports/user-engagement');
+        const data = await response.json();
+        
+        document.getElementById('daily-active').textContent = data.daily_active_users;
+        document.getElementById('weekly-active').textContent = data.weekly_active_users;
+        document.getElementById('monthly-active').textContent = data.monthly_active_users;
+        document.getElementById('total-users-engagement').textContent = data.total_users;
+        
+        const rates = data.engagement_rate;
+        document.getElementById('engagement-rates').innerHTML = `
+            <div class="row">
+                <div class="col-md-4">
+                    <p><strong>Daily:</strong> ${rates.daily}%</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Weekly:</strong> ${rates.weekly}%</p>
+                </div>
+                <div class="col-md-4">
+                    <p><strong>Monthly:</strong> ${rates.monthly}%</p>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('Error loading user engagement:', error);
+    }
+}
+
+async function loadRewardTrends() {
+    try {
+        const response = await fetch('/api/reports/reward-trends');
+        const data = await response.json();
+        
+        const html = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Total Stars</th>
+                        <th>Tasks Completed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.top_earners.map(user => `
+                        <tr>
+                            <td>${user.username}</td>
+                            <td><span class="badge bg-warning">${user.total_stars}</span></td>
+                            <td>${user.tasks_completed}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('top-earners').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading reward trends:', error);
+    }
+}
+
+async function loadTaskPerformance() {
+    try {
+        const response = await fetch('/api/reports/task-performance');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            document.getElementById('task-performance').innerHTML = '<p class="text-muted">No task performance data available</p>';
+            return;
+        }
+        
+        const html = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Task</th>
+                        <th>Type</th>
+                        <th>Reward</th>
+                        <th>Attempts</th>
+                        <th>Completions</th>
+                        <th>Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(task => `
+                        <tr>
+                            <td>${task.title}</td>
+                            <td><span class="badge bg-info">${task.type}</span></td>
+                            <td>${task.reward}</td>
+                            <td>${task.attempts}</td>
+                            <td>${task.completions}</td>
+                            <td><span class="badge bg-success">${task.completion_rate}%</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('task-performance').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading task performance:', error);
+    }
+}
+
+async function loadCategoryAnalytics() {
+    try {
+        const response = await fetch('/api/reports/category-analytics');
+        const data = await response.json();
+        
+        if (data.length === 0) {
+            document.getElementById('category-analytics').innerHTML = '<p class="text-muted">No category analytics available</p>';
+            return;
+        }
+        
+        const html = `
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Category</th>
+                        <th>Tasks</th>
+                        <th>Total Attempts</th>
+                        <th>Completions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${data.map(cat => `
+                        <tr>
+                            <td>${cat.name}</td>
+                            <td>${cat.task_count}</td>
+                            <td>${cat.total_attempts}</td>
+                            <td>${cat.completions}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+        document.getElementById('category-analytics').innerHTML = html;
+    } catch (error) {
+        console.error('Error loading category analytics:', error);
+    }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadUserEngagement();
+    
+    // Load other tabs when clicked
+    document.querySelectorAll('#reportTabs a[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('href');
+            if (target === '#rewards') loadRewardTrends();
+            else if (target === '#tasks') loadTaskPerformance();
+            else if (target === '#categories') loadCategoryAnalytics();
+        });
+    });
+});
+</script>
+{% endblock %}

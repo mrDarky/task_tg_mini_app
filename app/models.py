@@ -61,6 +61,7 @@ class TaskBase(BaseModel):
     reward: int = 0
     status: Literal['active', 'inactive', 'completed'] = 'active'
     category_id: Optional[int] = None
+    completion_limit: int = 0
 
 
 class TaskCreate(TaskBase):
@@ -75,6 +76,7 @@ class TaskUpdate(BaseModel):
     reward: Optional[int] = None
     status: Optional[Literal['active', 'inactive', 'completed']] = None
     category_id: Optional[int] = None
+    completion_limit: Optional[int] = None
 
 
 class Task(TaskBase):
@@ -114,3 +116,191 @@ class DashboardStats(BaseModel):
     total_categories: int
     total_stars_distributed: int
     total_completions: int
+    stars_today: int = 0
+    stars_week: int = 0
+    stars_month: int = 0
+    completion_rate: float = 0.0
+
+
+# Withdrawal models
+class WithdrawalBase(BaseModel):
+    user_id: int
+    amount: int
+    method: Optional[str] = None
+    details: Optional[str] = None
+
+
+class WithdrawalCreate(WithdrawalBase):
+    pass
+
+
+class WithdrawalUpdate(BaseModel):
+    status: Optional[Literal['pending', 'approved', 'rejected']] = None
+    admin_notes: Optional[str] = None
+
+
+class Withdrawal(WithdrawalBase):
+    id: int
+    status: Literal['pending', 'approved', 'rejected']
+    admin_id: Optional[int] = None
+    admin_notes: Optional[str] = None
+    created_at: datetime
+    processed_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+# Notification models
+class NotificationBase(BaseModel):
+    title: str
+    message: str
+    type: Literal['general', 'task', 'reward', 'system'] = 'general'
+    target_type: Literal['all', 'active', 'banned', 'custom'] = 'all'
+    target_filter: Optional[str] = None
+
+
+class NotificationCreate(NotificationBase):
+    pass
+
+
+class Notification(NotificationBase):
+    id: int
+    status: Literal['draft', 'sent', 'scheduled']
+    sent_count: int = 0
+    opened_count: int = 0
+    created_by: Optional[int] = None
+    created_at: datetime
+    sent_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+# Ticket models
+class TicketBase(BaseModel):
+    subject: str
+    message: str
+    priority: Literal['low', 'medium', 'high', 'urgent'] = 'medium'
+
+
+class TicketCreate(TicketBase):
+    user_id: int
+
+
+class TicketUpdate(BaseModel):
+    status: Optional[Literal['open', 'in_progress', 'resolved', 'closed']] = None
+    assigned_to: Optional[int] = None
+    priority: Optional[Literal['low', 'medium', 'high', 'urgent']] = None
+
+
+class Ticket(TicketBase):
+    id: int
+    user_id: int
+    status: Literal['open', 'in_progress', 'resolved', 'closed']
+    assigned_to: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True
+
+
+class TicketResponseCreate(BaseModel):
+    ticket_id: int
+    user_id: int
+    message: str
+    is_admin: bool = False
+
+
+class TicketResponse(BaseModel):
+    id: int
+    ticket_id: int
+    user_id: int
+    message: str
+    is_admin: bool
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Moderation log models
+class ModerationLogCreate(BaseModel):
+    admin_id: int
+    action: str
+    entity_type: str
+    entity_id: int
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class ModerationLog(ModerationLogCreate):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Settings models
+class SettingBase(BaseModel):
+    key: str
+    value: str
+    category: str = 'general'
+    description: Optional[str] = None
+
+
+class SettingCreate(SettingBase):
+    pass
+
+
+class SettingUpdate(BaseModel):
+    value: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+
+
+class Setting(SettingBase):
+    id: int
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Star transaction models
+class StarTransactionCreate(BaseModel):
+    user_id: int
+    amount: int
+    type: Literal['earned', 'spent', 'adjusted', 'bonus', 'refund']
+    reference_type: Optional[str] = None
+    reference_id: Optional[int] = None
+    description: Optional[str] = None
+    admin_id: Optional[int] = None
+
+
+class StarTransaction(StarTransactionCreate):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Enhanced dashboard models
+class RecentActivity(BaseModel):
+    id: int
+    type: str
+    description: str
+    user_id: Optional[int] = None
+    timestamp: datetime
+
+
+class SystemStatus(BaseModel):
+    database: str = 'healthy'
+    api: str = 'healthy'
+    bot: str = 'unknown'
+    last_check: datetime
