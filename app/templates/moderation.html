@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Moderation Logs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Moderation Logs</h1>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <select class="form-select" id="entityTypeFilter" onchange="loadLogs()">
+            <option value="">All Entity Types</option>
+            <option value="user">User</option>
+            <option value="task">Task</option>
+            <option value="category">Category</option>
+            <option value="withdrawal">Withdrawal</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="actionFilter" onchange="loadLogs()">
+            <option value="">All Actions</option>
+            <option value="create">Create</option>
+            <option value="update">Update</option>
+            <option value="delete">Delete</option>
+            <option value="ban">Ban</option>
+            <option value="unban">Unban</option>
+        </select>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">Admin Action History</h5>
+    </div>
+    <div class="card-body">
+        <div id="logs-list">Loading...</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadLogs() {
+    const entityType = document.getElementById('entityTypeFilter').value;
+    const action = document.getElementById('actionFilter').value;
+    
+    let url = '/api/moderation/logs?';
+    if (entityType) url += `entity_type=${entityType}&`;
+    if (action) url += `action=${action}&`;
+    
+    try {
+        const response = await fetch(url);
+        const logs = await response.json();
+        
+        const container = document.getElementById('logs-list');
+        if (logs.length === 0) {
+            container.innerHTML = '<p class="text-muted text-center">No logs found</p>';
+            return;
+        }
+        
+        container.innerHTML = `
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Admin</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Changes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${logs.map(log => `
+                        <tr>
+                            <td>${new Date(log.created_at).toLocaleString()}</td>
+                            <td>Admin ${log.admin_id}</td>
+                            <td><span class="badge bg-primary">${log.action}</span></td>
+                            <td>${log.entity_type} #${log.entity_id}</td>
+                            <td>
+                                ${log.old_value ? `<small><del>${log.old_value}</del></small> → ` : ''}
+                                ${log.new_value ? `<small><strong>${log.new_value}</strong></small>` : ''}
+                                ${log.notes ? `<br><small class="text-muted">${log.notes}</small>` : ''}
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } catch (error) {
+        console.error('Error loading logs:', error);
+    }
+}
+
+loadLogs();
+</script>
+{% endblock %}

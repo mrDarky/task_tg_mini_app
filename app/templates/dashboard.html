@@ -9,6 +9,7 @@
     </div>
 </div>
 
+<!-- Quick Stats Cards -->
 <div class="row" id="stats-row">
     <div class="col-md-3 mb-3">
         <div class="card bg-primary text-white">
@@ -30,26 +31,11 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title">Active Users</h6>
-                        <h2 id="active-users">0</h2>
+                        <h6 class="card-title">Active Tasks</h6>
+                        <h2 id="active-tasks">0</h2>
                     </div>
                     <div class="fs-1">
-                        <i class="bi bi-check-circle"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card bg-danger text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="card-title">Banned Users</h6>
-                        <h2 id="banned-users">0</h2>
-                    </div>
-                    <div class="fs-1">
-                        <i class="bi bi-x-circle"></i>
+                        <i class="bi bi-list-check"></i>
                     </div>
                 </div>
             </div>
@@ -60,11 +46,26 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <h6 class="card-title">Total Tasks</h6>
-                        <h2 id="total-tasks">0</h2>
+                        <h6 class="card-title">Stars Distributed</h6>
+                        <h2 id="total-stars">0</h2>
                     </div>
                     <div class="fs-1">
-                        <i class="bi bi-list-task"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="card-title">Completion Rate</h6>
+                        <h2 id="completion-rate">0%</h2>
+                    </div>
+                    <div class="fs-1">
+                        <i class="bi bi-clipboard-check"></i>
                     </div>
                 </div>
             </div>
@@ -72,36 +73,104 @@
     </div>
 </div>
 
+<!-- Stars Distribution by Period -->
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Stars Today</h6>
+                <h3 id="stars-today" class="text-success">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Stars This Week</h6>
+                <h3 id="stars-week" class="text-primary">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Stars This Month</h6>
+                <h3 id="stars-month" class="text-info">0</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity and System Status -->
+<div class="row">
+    <div class="col-md-8 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Recent Activity</h5>
+            </div>
+            <div class="card-body">
+                <div id="recent-activity" class="list-group list-group-flush">
+                    <div class="text-center py-3 text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">System Status</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Database</span>
+                    <span id="status-database" class="badge bg-secondary">Checking...</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>API</span>
+                    <span id="status-api" class="badge bg-secondary">Checking...</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Bot</span>
+                    <span id="status-bot" class="badge bg-secondary">Unknown</span>
+                </div>
+                <hr>
+                <small class="text-muted">Last checked: <span id="last-check">Never</span></small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Stats -->
 <div class="row">
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title">Active Tasks</h6>
-                <h3 id="active-tasks">0</h3>
+                <h6 class="card-title text-muted">Active Users</h6>
+                <h3 id="active-users">0</h3>
             </div>
         </div>
     </div>
     <div class="col-md-3 mb-3">
         <div class="card">
             <div class="card-body">
-                <h6 class="card-title">Categories</h6>
+                <h6 class="card-title text-muted">Banned Users</h6>
+                <h3 id="banned-users" class="text-danger">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Total Tasks</h6>
+                <h3 id="total-tasks">0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Categories</h6>
                 <h3 id="total-categories">0</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title">Stars Distributed</h6>
-                <h3 id="total-stars">0</h3>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3 mb-3">
-        <div class="card">
-            <div class="card-body">
-                <h6 class="card-title">Completions</h6>
-                <h3 id="total-completions">0</h3>
             </div>
         </div>
     </div>
@@ -115,19 +184,103 @@ async function loadStats() {
         const response = await fetch('/api/analytics/dashboard');
         const stats = await response.json();
         
+        // Update main stats
         document.getElementById('total-users').textContent = stats.total_users;
+        document.getElementById('active-tasks').textContent = stats.active_tasks;
+        document.getElementById('total-stars').textContent = stats.total_stars_distributed;
+        document.getElementById('completion-rate').textContent = stats.completion_rate + '%';
+        
+        // Update stars by period
+        document.getElementById('stars-today').textContent = stats.stars_today;
+        document.getElementById('stars-week').textContent = stats.stars_week;
+        document.getElementById('stars-month').textContent = stats.stars_month;
+        
+        // Update additional stats
         document.getElementById('active-users').textContent = stats.active_users;
         document.getElementById('banned-users').textContent = stats.banned_users;
         document.getElementById('total-tasks').textContent = stats.total_tasks;
-        document.getElementById('active-tasks').textContent = stats.active_tasks;
         document.getElementById('total-categories').textContent = stats.total_categories;
-        document.getElementById('total-stars').textContent = stats.total_stars_distributed;
-        document.getElementById('total-completions').textContent = stats.total_completions;
     } catch (error) {
         console.error('Error loading stats:', error);
     }
 }
 
+async function loadRecentActivity() {
+    try {
+        const response = await fetch('/api/analytics/recent-activity?limit=10');
+        const activities = await response.json();
+        
+        const container = document.getElementById('recent-activity');
+        if (activities.length === 0) {
+            container.innerHTML = '<div class="text-center py-3 text-muted">No recent activity</div>';
+            return;
+        }
+        
+        container.innerHTML = activities.map(activity => `
+            <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="bi bi-${getActivityIcon(activity.type)}"></i>
+                    ${activity.description}
+                </div>
+                <small class="text-muted">${formatTimestamp(activity.timestamp)}</small>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Error loading recent activity:', error);
+        document.getElementById('recent-activity').innerHTML = '<div class="text-center py-3 text-danger">Error loading activity</div>';
+    }
+}
+
+async function loadSystemStatus() {
+    try {
+        const response = await fetch('/api/analytics/system-status');
+        const status = await response.json();
+        
+        document.getElementById('status-database').textContent = status.database.toUpperCase();
+        document.getElementById('status-database').className = `badge bg-${status.database === 'healthy' ? 'success' : 'danger'}`;
+        
+        document.getElementById('status-api').textContent = status.api.toUpperCase();
+        document.getElementById('status-api').className = `badge bg-${status.api === 'healthy' ? 'success' : 'danger'}`;
+        
+        document.getElementById('status-bot').textContent = status.bot.toUpperCase();
+        document.getElementById('status-bot').className = `badge bg-secondary`;
+        
+        document.getElementById('last-check').textContent = formatTimestamp(status.last_check);
+    } catch (error) {
+        console.error('Error loading system status:', error);
+    }
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        'user_registered': 'person-plus',
+        'task_completed': 'check-circle',
+        'withdrawal_requested': 'cash-coin'
+    };
+    return icons[type] || 'circle';
+}
+
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    
+    if (diff < 60000) return 'Just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + ' min ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + ' hours ago';
+    return date.toLocaleDateString();
+}
+
+// Load all data
 loadStats();
+loadRecentActivity();
+loadSystemStatus();
+
+// Refresh every 30 seconds
+setInterval(() => {
+    loadStats();
+    loadRecentActivity();
+    loadSystemStatus();
+}, 30000);
 </script>
 {% endblock %}
