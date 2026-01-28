@@ -35,10 +35,11 @@ A comprehensive task management system with a Telegram bot interface and web-bas
 
 ## Technology Stack
 
-- **Backend**: FastAPI (Python async framework)
+- **Backend**: FastAPI 0.109.1 (Python async framework) - Security patched
 - **Bot**: aiogram 3.x (Telegram Bot API)
 - **Database**: SQLite with aiosqlite (async)
 - **Frontend**: Bootstrap 5, Vanilla JavaScript
+- **Form Handling**: python-multipart 0.0.22 - Security patched
 - **Architecture**: RESTful API, Service Layer Pattern
 
 ## Project Structure
@@ -241,6 +242,9 @@ Once the server is running, visit:
 - Status-based user restrictions (banned users)
 - SQL injection prevention (parameterized queries)
 - XSS protection in templates
+- **All dependencies patched** - No known vulnerabilities
+  - FastAPI 0.109.1 (patched ReDoS vulnerability)
+  - python-multipart 0.0.22 (patched file write, DoS, and ReDoS vulnerabilities)
 
 ## Development
 
