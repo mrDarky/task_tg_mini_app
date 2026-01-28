@@ -5,6 +5,7 @@ from datetime import datetime
 
 class UserBase(BaseModel):
     username: Optional[str] = None
+    referral_code: Optional[str] = None
     stars: int = 0
     status: Literal['active', 'banned'] = 'active'
     role: Literal['user', 'admin'] = 'user'
@@ -16,6 +17,7 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
+    referral_code: Optional[str] = None
     stars: Optional[int] = None
     status: Optional[Literal['active', 'banned']] = None
     role: Optional[Literal['user', 'admin']] = None
@@ -304,3 +306,128 @@ class SystemStatus(BaseModel):
     api: str = 'healthy'
     bot: str = 'unknown'
     last_check: datetime
+
+
+# Referral models
+class ReferralCreate(BaseModel):
+    referrer_id: int
+    referred_id: int
+
+
+class Referral(BaseModel):
+    id: int
+    referrer_id: int
+    referred_id: int
+    bonus_awarded: bool = False
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Daily bonus models
+class DailyBonusCreate(BaseModel):
+    user_id: int
+    bonus_amount: int
+    streak_count: int = 1
+
+
+class DailyBonus(BaseModel):
+    id: int
+    user_id: int
+    bonus_amount: int
+    streak_count: int
+    claimed_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Achievement models
+class AchievementBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    requirement_type: str
+    requirement_value: int
+    reward_stars: int = 0
+
+
+class AchievementCreate(AchievementBase):
+    pass
+
+
+class Achievement(AchievementBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class UserAchievement(BaseModel):
+    id: int
+    user_id: int
+    achievement_id: int
+    earned_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# User settings models
+class UserSettingsBase(BaseModel):
+    language: str = 'en'
+    notifications_enabled: bool = True
+    task_notifications: bool = True
+    reward_notifications: bool = True
+
+
+class UserSettingsCreate(UserSettingsBase):
+    user_id: int
+
+
+class UserSettingsUpdate(BaseModel):
+    language: Optional[str] = None
+    notifications_enabled: Optional[bool] = None
+    task_notifications: Optional[bool] = None
+    reward_notifications: Optional[bool] = None
+
+
+class UserSettings(UserSettingsBase):
+    id: int
+    user_id: int
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Task submission models
+class TaskSubmissionCreate(BaseModel):
+    user_id: int
+    task_id: int
+    submission_type: str = 'screenshot'
+    file_id: Optional[str] = None
+    file_path: Optional[str] = None
+
+
+class TaskSubmissionUpdate(BaseModel):
+    status: Optional[Literal['pending', 'approved', 'rejected']] = None
+    admin_notes: Optional[str] = None
+
+
+class TaskSubmission(BaseModel):
+    id: int
+    user_id: int
+    task_id: int
+    submission_type: str
+    file_id: Optional[str] = None
+    file_path: Optional[str] = None
+    status: Literal['pending', 'approved', 'rejected']
+    admin_notes: Optional[str] = None
+    submitted_at: datetime
+    reviewed_at: Optional[datetime] = None
+    
+    class Config:
+        from_attributes = True

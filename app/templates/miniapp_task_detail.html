@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task App - Task Detail</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/miniapp/css/miniapp.css">
+</head>
+<body>
+    <div class="container-fluid p-0 pb-5">
+        <!-- Header -->
+        <div class="header bg-primary text-white p-3">
+            <div class="d-flex align-items-center">
+                <a href="/miniapp/tasks" class="text-white me-3">
+                    <i class="bi bi-arrow-left fs-5"></i>
+                </a>
+                <h5 class="mb-0">Task Details</h5>
+            </div>
+        </div>
+
+        <!-- Task Info Card -->
+        <div class="card m-3 border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 id="taskTitle">Loading...</h5>
+                    <span class="badge bg-primary" id="taskType">---</span>
+                </div>
+                <p class="text-muted" id="taskDescription">Loading task details...</p>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <small class="text-muted">Reward</small>
+                        <h4 class="mb-0 text-warning">
+                            <i class="bi bi-star-fill"></i>
+                            <span id="taskReward">0</span>
+                        </h4>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted">Time Estimate</small>
+                        <h6 class="mb-0" id="timeEstimate">2-3 min</h6>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step-by-step Instructions -->
+        <div class="m-3">
+            <h6 class="mb-2">📝 Instructions</h6>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <div id="taskSteps">
+                        <!-- Steps will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Requirements -->
+        <div class="m-3">
+            <h6 class="mb-2">✅ Verification</h6>
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <p class="mb-2" id="verificationText">
+                        Please complete all steps and submit for verification.
+                    </p>
+                    <div id="verificationSteps">
+                        <!-- Verification requirements will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timer for video watches -->
+        <div class="m-3" id="timerSection" style="display: none;">
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body text-center">
+                    <h6 class="mb-2">⏱️ Watch Timer</h6>
+                    <div class="timer-display">
+                        <h2 class="mb-0" id="timerDisplay">00:00</h2>
+                    </div>
+                    <p class="text-muted small mb-0">Please watch for the required duration</p>
+                    <div class="progress mt-2" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             id="timerProgress" role="progressbar" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Link Button -->
+        <div class="m-3">
+            <a href="#" class="btn btn-primary btn-lg w-100 mb-2" id="openTaskBtn" target="_blank">
+                <i class="bi bi-box-arrow-up-right"></i> Open Task Link
+            </a>
+            <button class="btn btn-success btn-lg w-100" id="completeBtn">
+                <i class="bi bi-check-circle"></i> Mark as Complete
+            </button>
+        </div>
+
+        <!-- Submission Form (for screenshot tasks) -->
+        <div class="m-3" id="submissionSection" style="display: none;">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body">
+                    <h6 class="mb-3">📸 Submit Proof</h6>
+                    <p class="text-muted small">Upload a screenshot of the completed task</p>
+                    <input type="file" class="form-control" id="screenshotInput" accept="image/*">
+                    <button class="btn btn-primary w-100 mt-3" id="submitProofBtn">
+                        Submit for Review
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Tasks -->
+        <div class="m-3">
+            <h6 class="mb-2">Similar Tasks</h6>
+            <div id="relatedTasks" class="d-flex flex-column gap-2">
+                <!-- Related tasks will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/miniapp/js/miniapp-common.js"></script>
+    <script src="/static/miniapp/js/miniapp-task-detail.js"></script>
+</body>
+</html>

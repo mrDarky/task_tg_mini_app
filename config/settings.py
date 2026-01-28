@@ -4,9 +4,11 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     bot_token: str = ""
+    bot_username: str = "TaskAppBot"
     admin_api_key: str = "admin_secret_key"
     database_url: str = "sqlite:///./task_app.db"
     admin_user_ids: str = ""
+    web_app_url: str = "http://localhost:8000"
     
     class Config:
         env_file = ".env"
