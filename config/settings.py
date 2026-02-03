@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./task_app.db"
     admin_user_ids: str = ""
     web_app_url: str = "http://localhost:8000"
+    port: int = 8000
     
     class Config:
         env_file = ".env"

@@ -83,9 +83,11 @@ async def main():
     
     # Check if BOT_TOKEN is set before starting
     bot_enabled = False
+    port = 8000
     try:
         from config.settings import settings
         bot_enabled = bool(settings.bot_token and settings.bot_token != "your_telegram_bot_token_here")
+        port = settings.port
     except Exception as e:
         print(f"⚠️  Warning: Could not load settings: {e}")
         print("    Continuing without bot...")
@@ -100,7 +102,7 @@ async def main():
     print(f"{log_prefix('SETUP', '\033[96m')}Starting FastAPI server...")
     
     fastapi_proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"],
+        [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", str(port)],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         env=get_process_env(),
@@ -150,9 +152,9 @@ async def main():
     print("=" * 60)
     print()
     print("📍 Access Points:")
-    print(f"   • Mini-App Home:  http://localhost:8000/miniapp")
-    print(f"   • Admin Panel:    http://localhost:8000/admin")
-    print(f"   • API Docs:       http://localhost:8000/docs")
+    print(f"   • Mini-App Home:  http://localhost:{port}/miniapp")
+    print(f"   • Admin Panel:    http://localhost:{port}/admin")
+    print(f"   • API Docs:       http://localhost:{port}/docs")
     if bot_enabled:
         print(f"   • Telegram Bot:   Active and polling")
     else:
