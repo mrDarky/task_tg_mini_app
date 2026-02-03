@@ -5,16 +5,18 @@ This script starts only the web server component.
 """
 import sys
 import uvicorn
+from config.settings import settings
 
 if __name__ == "__main__":
+    port = settings.port
     print("=" * 60)
     print("    Starting FastAPI Web App + Admin Panel")
     print("=" * 60)
     print()
     print("📍 Access Points:")
-    print("   • Mini-App Home:  http://localhost:8000/miniapp")
-    print("   • Admin Panel:    http://localhost:8000/admin")
-    print("   • API Docs:       http://localhost:8000/docs")
+    print(f"   • Mini-App Home:  http://localhost:{port}/miniapp")
+    print(f"   • Admin Panel:    http://localhost:{port}/admin")
+    print(f"   • API Docs:       http://localhost:{port}/docs")
     print()
     print("💡 Development mode: Auto-reload enabled")
     print("Press Ctrl+C to stop the server")
@@ -23,7 +25,7 @@ if __name__ == "__main__":
     
     try:
         # reload=True enables auto-reload for development
-        uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+        uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
     except KeyboardInterrupt:
         print("\n\nServer stopped.")
         sys.exit(0)
