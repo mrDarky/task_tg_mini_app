@@ -172,11 +172,15 @@ async def update_translation(translation_id: int, translation_data: dict):
 async def bulk_update_translations(language_id: int, translations: dict):
     """Bulk update/create translations for a language"""
     for key, value in translations.items():
+        # Check if translation exists to preserve category
+        existing = await get_translation_by_key(language_id, key)
+        category = existing['category'] if existing else 'general'
+        
         await create_translation({
             'language_id': language_id,
             'key': key,
             'value': value,
-            'category': 'general'
+            'category': category
         })
     return True
 

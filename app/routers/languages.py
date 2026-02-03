@@ -138,8 +138,10 @@ async def import_language(language_data: LanguageImport):
             "id": language_id,
             "message": f"Language '{language_data.name}' imported successfully with {len(language_data.translations)} translations"
         }
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to import language")
 
 
 @router.post("/import-file", response_model=dict)
@@ -160,5 +162,7 @@ async def import_language_file(file: UploadFile = File(...)):
         }
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON file")
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Failed to import language file")
