@@ -431,3 +431,72 @@ class TaskSubmission(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# Language models
+class LanguageBase(BaseModel):
+    code: str
+    name: str
+    is_active: bool = True
+    is_default: bool = False
+
+
+class LanguageCreate(LanguageBase):
+    pass
+
+
+class LanguageUpdate(BaseModel):
+    code: Optional[str] = None
+    name: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_default: Optional[bool] = None
+
+
+class Language(LanguageBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+# Translation models
+class TranslationBase(BaseModel):
+    key: str
+    value: str
+    category: str = 'general'
+
+
+class TranslationCreate(TranslationBase):
+    language_id: int
+
+
+class TranslationUpdate(BaseModel):
+    value: Optional[str] = None
+    category: Optional[str] = None
+
+
+class Translation(TranslationBase):
+    id: int
+    language_id: int
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class LanguageExport(BaseModel):
+    """Model for exporting language data"""
+    code: str
+    name: str
+    translations: dict[str, str]
+
+
+class LanguageImport(BaseModel):
+    """Model for importing language data"""
+    code: str
+    name: str
+    translations: dict[str, str]
+    is_active: bool = True

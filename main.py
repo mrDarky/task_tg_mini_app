@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
-from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports
+from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.include_router(notifications.router)
 app.include_router(tickets.router)
 app.include_router(moderation.router)
 app.include_router(reports.router)
+app.include_router(languages.router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -90,6 +91,16 @@ async def admin_tickets(request: Request):
 @app.get("/admin/moderation", response_class=HTMLResponse)
 async def admin_moderation(request: Request):
     return templates.TemplateResponse("moderation.html", {"request": request})
+
+
+@app.get("/admin/languages", response_class=HTMLResponse)
+async def admin_languages(request: Request):
+    return templates.TemplateResponse("languages.html", {"request": request})
+
+
+@app.get("/admin/translations/{language_id}", response_class=HTMLResponse)
+async def admin_translations(request: Request, language_id: int):
+    return templates.TemplateResponse("translations.html", {"request": request, "language_id": language_id})
 
 
 # Mini-app routes

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Translations - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1>Translations Editor</h1>
+                <p class="text-muted mb-0">Language: <span id="languageName" class="badge bg-primary"></span></p>
+            </div>
+            <div>
+                <button class="btn btn-success" onclick="exportLanguage()">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTranslationModal">
+                    <i class="bi bi-plus-circle"></i> Add Translation
+                </button>
+                <a href="/admin/languages" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Languages
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter and Search -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" id="searchInput" placeholder="Search by key or value...">
+        </div>
+    </div>
+    <div class="col-md-3">
+        <select class="form-select" id="categoryFilter">
+            <option value="">All Categories</option>
+        </select>
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-outline-primary w-100" onclick="saveAllChanges()">
+            <i class="bi bi-save"></i> Save All Changes
+        </button>
+    </div>
+</div>
+
+<!-- Translations Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Translation Keys and Values</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="translationsTable">
+                        <thead>
+                            <tr>
+                                <th style="width: 25%;">Key</th>
+                                <th style="width: 45%;">Value</th>
+                                <th style="width: 15%;">Category</th>
+                                <th style="width: 15%;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="translationsTableBody">
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <div class="spinner-border" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Translation Modal -->
+<div class="modal fade" id="addTranslationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Translation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addTranslationForm">
+                    <div class="mb-3">
+                        <label for="translationKey" class="form-label">Key *</label>
+                        <input type="text" class="form-control" id="translationKey" name="key" required 
+                               placeholder="e.g., welcome_message">
+                        <small class="form-text text-muted">Use lowercase with underscores</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="translationValue" class="form-label">Value *</label>
+                        <textarea class="form-control" id="translationValue" name="value" required 
+                                  rows="3" placeholder="Translation text..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="translationCategory" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="translationCategory" name="category" 
+                               value="general" placeholder="e.g., bot, admin, general">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="addTranslation()">Add Translation</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Translation Modal -->
+<div class="modal fade" id="editTranslationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Translation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editTranslationForm">
+                    <input type="hidden" id="editTranslationId">
+                    <div class="mb-3">
+                        <label for="editTranslationKey" class="form-label">Key</label>
+                        <input type="text" class="form-control" id="editTranslationKey" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTranslationValue" class="form-label">Value *</label>
+                        <textarea class="form-control" id="editTranslationValue" name="value" required 
+                                  rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editTranslationCategory" class="form-label">Category</label>
+                        <input type="text" class="form-control" id="editTranslationCategory" name="category">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateTranslation()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<input type="hidden" id="currentLanguageId" value="{{ language_id }}">
+
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/translations.js"></script>
+{% endblock %}

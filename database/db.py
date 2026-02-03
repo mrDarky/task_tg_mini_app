@@ -267,7 +267,38 @@ class Database:
             )
         """)
         
+        # Languages table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS languages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                is_active BOOLEAN DEFAULT 1,
+                is_default BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Translations table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS translations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                language_id INTEGER NOT NULL,
+                key TEXT NOT NULL,
+                value TEXT NOT NULL,
+                category TEXT DEFAULT 'general',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (language_id) REFERENCES languages (id) ON DELETE CASCADE,
+                UNIQUE(language_id, key)
+            )
+        """)
+        
         await self.connection.commit()
+        
+        # Initialize default languages if not exist
+        await self._initialize_default_languages()
     
     async def execute(self, query: str, params: tuple = ()):
         cursor = await self.connection.execute(query, params)
@@ -281,6 +312,81 @@ class Database:
     async def fetch_all(self, query: str, params: tuple = ()):
         cursor = await self.connection.execute(query, params)
         return await cursor.fetchall()
+    
+    async def _initialize_default_languages(self):
+        """Initialize default languages (English and Russian) if they don't exist"""
+        # Check if languages already exist
+        existing = await self.fetch_one("SELECT COUNT(*) as count FROM languages")
+        if existing and existing['count'] > 0:
+            return
+        
+        # Add English (default)
+        await self.execute(
+            "INSERT INTO languages (code, name, is_active, is_default) VALUES (?, ?, 1, 1)",
+            ('en', 'English')
+        )
+        
+        # Add Russian
+        await self.execute(
+            "INSERT INTO languages (code, name, is_active, is_default) VALUES (?, ?, 1, 0)",
+            ('ru', 'Русский')
+        )
+        
+        # Get language IDs
+        en_lang = await self.fetch_one("SELECT id FROM languages WHERE code = 'en'")
+        ru_lang = await self.fetch_one("SELECT id FROM languages WHERE code = 'ru'")
+        
+        # Add default translations for English
+        default_translations_en = [
+            ('welcome_message', 'Welcome to Task App!', 'bot'),
+            ('tasks_button', 'Tasks', 'bot'),
+            ('profile_button', 'Profile', 'bot'),
+            ('help_button', 'Help', 'bot'),
+            ('settings_button', 'Settings', 'bot'),
+            ('stars_earned', 'Stars earned', 'bot'),
+            ('task_completed', 'Task completed!', 'bot'),
+            ('daily_bonus', 'Daily Bonus', 'bot'),
+            ('referral_bonus', 'Referral Bonus', 'bot'),
+            ('admin_panel', 'Admin Panel', 'admin'),
+            ('dashboard', 'Dashboard', 'admin'),
+            ('users', 'Users', 'admin'),
+            ('tasks', 'Tasks', 'admin'),
+            ('categories', 'Categories', 'admin'),
+            ('languages', 'Languages', 'admin'),
+            ('translations', 'Translations', 'admin'),
+        ]
+        
+        for key, value, category in default_translations_en:
+            await self.execute(
+                "INSERT INTO translations (language_id, key, value, category) VALUES (?, ?, ?, ?)",
+                (en_lang['id'], key, value, category)
+            )
+        
+        # Add default translations for Russian
+        default_translations_ru = [
+            ('welcome_message', 'Добро пожаловать в Task App!', 'bot'),
+            ('tasks_button', 'Задания', 'bot'),
+            ('profile_button', 'Профиль', 'bot'),
+            ('help_button', 'Помощь', 'bot'),
+            ('settings_button', 'Настройки', 'bot'),
+            ('stars_earned', 'Заработано звезд', 'bot'),
+            ('task_completed', 'Задание выполнено!', 'bot'),
+            ('daily_bonus', 'Ежедневный бонус', 'bot'),
+            ('referral_bonus', 'Реферальный бонус', 'bot'),
+            ('admin_panel', 'Панель администратора', 'admin'),
+            ('dashboard', 'Панель управления', 'admin'),
+            ('users', 'Пользователи', 'admin'),
+            ('tasks', 'Задания', 'admin'),
+            ('categories', 'Категории', 'admin'),
+            ('languages', 'Языки', 'admin'),
+            ('translations', 'Переводы', 'admin'),
+        ]
+        
+        for key, value, category in default_translations_ru:
+            await self.execute(
+                "INSERT INTO translations (language_id, key, value, category) VALUES (?, ?, ?, ?)",
+                (ru_lang['id'], key, value, category)
+            )
 
 
 db = Database()
