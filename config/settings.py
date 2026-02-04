@@ -1,5 +1,12 @@
 import os
+import secrets
 from pydantic_settings import BaseSettings
+from pydantic import model_validator
+
+
+def generate_secret_key() -> str:
+    """Generate a secure random secret key"""
+    return secrets.token_urlsafe(32)
 
 
 class Settings(BaseSettings):
@@ -12,7 +19,15 @@ class Settings(BaseSettings):
     port: int = 8000
     admin_username: str = "admin"
     admin_password: str = "admin123"
-    secret_key: str = "your-secret-key-change-this-in-production"
+    secret_key: str = ""
+    use_secure_cookies: bool = False  # Set to True in production with HTTPS
+    
+    @model_validator(mode='after')
+    def generate_secret_if_needed(self):
+        """Generate a secure secret key if not provided"""
+        if not self.secret_key:
+            self.secret_key = generate_secret_key()
+        return self
     
     class Config:
         env_file = ".env"

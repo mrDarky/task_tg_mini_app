@@ -81,7 +81,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
             value=session_token,
             httponly=True,
             max_age=86400 * 7,  # 7 days
-            secure=False,  # Set to True in production with HTTPS
+            secure=settings.use_secure_cookies,
             samesite="lax"
         )
         return response

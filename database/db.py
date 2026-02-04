@@ -317,15 +317,16 @@ class Database:
     async def _initialize_default_admin(self):
         """Initialize default admin credentials from settings if they don't exist"""
         from config.settings import settings
-        import hashlib
+        from passlib.context import CryptContext
         
         # Check if admin already exists
         existing = await self.fetch_one("SELECT COUNT(*) as count FROM admin_credentials")
         if existing and existing['count'] > 0:
             return
         
-        # Hash the default password
-        password_hash = hashlib.sha256(settings.admin_password.encode()).hexdigest()
+        # Hash the default password using bcrypt
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash(settings.admin_password)
         
         # Add default admin
         await self.execute(

@@ -3,8 +3,13 @@ from typing import Optional
 from fastapi import Request, HTTPException, status
 from fastapi.responses import RedirectResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature
+from passlib.context import CryptContext
 from config.settings import settings
 from database.db import db
+
+
+# Password hashing context using bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class AuthenticationError(Exception):
@@ -33,13 +38,13 @@ session_manager = SessionManager(settings.secret_key)
 
 
 def hash_password(password: str) -> str:
-    """Hash a password using SHA-256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password using bcrypt"""
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash"""
-    return hash_password(plain_password) == hashed_password
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 async def authenticate_user(username: str, password: str) -> bool:
