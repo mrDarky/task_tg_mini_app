@@ -92,6 +92,8 @@ async def get_category_tree(include_translations: bool = False) -> List[dict]:
 async def update_category(category_id: int, category_update: CategoryUpdate) -> bool:
     update_data = category_update.model_dump(exclude_unset=True, exclude={'translations'})
     
+    updated = False
+    
     # Update category base fields
     if update_data:
         fields = []
@@ -103,6 +105,7 @@ async def update_category(category_id: int, category_update: CategoryUpdate) -> 
         values.append(category_id)
         query = f"UPDATE categories SET {', '.join(fields)} WHERE id = ?"
         await db.execute(query, tuple(values))
+        updated = True
     
     # Update translations if provided
     if category_update.translations is not None:
@@ -128,8 +131,9 @@ async def update_category(category_id: int, category_update: CategoryUpdate) -> 
                        VALUES (?, ?, ?)""",
                     (category_id, trans.language_id, trans.name)
                 )
+        updated = True
     
-    return True
+    return updated
 
 
 async def delete_category(category_id: int) -> bool:

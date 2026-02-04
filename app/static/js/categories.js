@@ -12,7 +12,8 @@ async function loadLanguages() {
 
 async function loadCategories() {
     try {
-        const response = await fetch('/api/categories/tree/all?include_translations=true');
+        // Don't include translations in tree view for performance
+        const response = await fetch('/api/categories/tree/all?include_translations=false');
         const data = await response.json();
         
         displayCategoryTree(data.tree);

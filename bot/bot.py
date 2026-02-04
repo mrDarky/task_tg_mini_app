@@ -22,6 +22,12 @@ def generate_referral_code(telegram_id: int) -> str:
     return hash_obj.hexdigest()[:8].upper()
 
 
+async def get_user_language(user_id: int) -> str:
+    """Get user's language preference from user_settings"""
+    user_settings = await db.fetch_one("SELECT language FROM user_settings WHERE user_id = ?", (user_id,))
+    return user_settings['language'] if user_settings else 'en'
+
+
 async def process_referral(new_user_id: int, referral_code: str):
     """Process referral bonus when a new user signs up with a referral code"""
     # Find referrer by referral code
@@ -148,8 +154,7 @@ async def cmd_tasks(message: types.Message):
         return
     
     # Get user language
-    user_settings = await db.fetch_one("SELECT language FROM user_settings WHERE user_id = ?", (user['id'],))
-    user_lang = user_settings['language'] if user_settings else 'en'
+    user_lang = await get_user_language(user['id'])
     
     # Get all categories
     categories = await db.fetch_all("SELECT * FROM categories WHERE parent_id IS NULL")
@@ -447,8 +452,7 @@ async def show_category_tasks(callback: types.CallbackQuery):
         return
     
     # Get user language
-    user_settings = await db.fetch_one("SELECT language FROM user_settings WHERE user_id = ?", (user['id'],))
-    user_lang = user_settings['language'] if user_settings else 'en'
+    user_lang = await get_user_language(user['id'])
     
     # Get category info
     category = await db.fetch_one("SELECT * FROM categories WHERE id = ?", (category_id,))
