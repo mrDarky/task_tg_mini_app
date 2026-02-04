@@ -1,7 +1,11 @@
 import os
 import secrets
+import logging
 from pydantic_settings import BaseSettings
 from pydantic import model_validator
+
+
+logger = logging.getLogger(__name__)
 
 
 def generate_secret_key() -> str:
@@ -27,6 +31,11 @@ class Settings(BaseSettings):
         """Generate a secure secret key if not provided"""
         if not self.secret_key:
             self.secret_key = generate_secret_key()
+            logger.warning(
+                "SECRET_KEY not set in environment. Auto-generated a temporary key. "
+                "All sessions will be invalidated on application restart. "
+                "For production, set SECRET_KEY in .env file."
+            )
         return self
     
     class Config:

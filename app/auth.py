@@ -1,8 +1,7 @@
-import hashlib
 from typing import Optional
 from fastapi import Request, HTTPException, status
 from fastapi.responses import RedirectResponse
-from itsdangerous import URLSafeTimedSerializer, BadSignature
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from passlib.context import CryptContext
 from config.settings import settings
 from database.db import db
@@ -30,8 +29,14 @@ class SessionManager:
         try:
             username = self.serializer.loads(token, salt='admin-session', max_age=max_age)
             return username
-        except (BadSignature, Exception):
+        except (BadSignature, SignatureExpired) as e:
+            # Log the specific error for debugging
             return None
+        except Exception as e:
+            # Let unexpected errors propagate after logging
+            import logging
+            logging.error(f"Unexpected error verifying session: {e}")
+            raise
 
 
 session_manager = SessionManager(settings.secret_key)
