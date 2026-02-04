@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
 from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages
-from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password
+from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
 from pydantic import BaseModel
 
 
@@ -25,6 +25,12 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
+
+
+# Exception handler for authentication errors
+@app.exception_handler(AuthenticationError)
+async def authentication_exception_handler(request: Request, exc: AuthenticationError):
+    return RedirectResponse(url="/admin/login", status_code=303)
 
 
 # Pydantic models for request validation

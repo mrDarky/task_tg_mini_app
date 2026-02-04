@@ -7,6 +7,11 @@ from config.settings import settings
 from database.db import db
 
 
+class AuthenticationError(Exception):
+    """Custom exception for authentication errors"""
+    pass
+
+
 class SessionManager:
     def __init__(self, secret_key: str):
         self.serializer = URLSafeTimedSerializer(secret_key)
@@ -70,16 +75,12 @@ async def get_current_user(request: Request) -> Optional[str]:
     return username
 
 
-async def require_auth(request: Request):
+async def require_auth(request: Request) -> str:
     """Dependency to require authentication for a route"""
     user = await get_current_user(request)
     if not user:
-        # Redirect to login page
-        raise HTTPException(
-            status_code=status.HTTP_303_SEE_OTHER,
-            detail="Not authenticated",
-            headers={"Location": "/admin/login"}
-        )
+        # Raise custom exception that will be handled by exception handler
+        raise AuthenticationError()
     return user
 
 
