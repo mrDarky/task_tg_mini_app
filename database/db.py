@@ -295,10 +295,44 @@ class Database:
             )
         """)
         
+        # Admin credentials table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS admin_credentials (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         await self.connection.commit()
         
         # Initialize default languages if not exist
         await self._initialize_default_languages()
+        
+        # Initialize default admin credentials if not exist
+        await self._initialize_default_admin()
+    
+    async def _initialize_default_admin(self):
+        """Initialize default admin credentials from settings if they don't exist"""
+        from config.settings import settings
+        from passlib.context import CryptContext
+        
+        # Check if admin already exists
+        existing = await self.fetch_one("SELECT COUNT(*) as count FROM admin_credentials")
+        if existing and existing['count'] > 0:
+            return
+        
+        # Hash the default password using bcrypt
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        password_hash = pwd_context.hash(settings.admin_password)
+        
+        # Add default admin
+        await self.execute(
+            "INSERT INTO admin_credentials (username, password_hash) VALUES (?, ?)",
+            (settings.admin_username, password_hash)
+        )
     
     async def execute(self, query: str, params: tuple = ()):
         cursor = await self.connection.execute(query, params)
