@@ -35,9 +35,25 @@ class Database:
             CREATE TABLE IF NOT EXISTS categories (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
+                label TEXT,
                 parent_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (parent_id) REFERENCES categories (id) ON DELETE CASCADE
+            )
+        """)
+        
+        # Category translations table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS category_translations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                category_id INTEGER NOT NULL,
+                language_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE CASCADE,
+                FOREIGN KEY (language_id) REFERENCES languages (id) ON DELETE CASCADE,
+                UNIQUE(category_id, language_id)
             )
         """)
         

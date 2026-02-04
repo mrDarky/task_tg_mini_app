@@ -28,7 +28,7 @@ function displayUsers(users) {
     const tbody = document.getElementById('users-table-body');
     
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center">No users found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No users found</td></tr>';
         return;
     }
     
@@ -41,6 +41,7 @@ function displayUsers(users) {
             <td><span class="badge bg-warning">${user.stars}</span></td>
             <td><span class="badge bg-${user.status === 'active' ? 'success' : 'danger'}">${user.status}</span></td>
             <td><span class="badge bg-info">${user.role}</span></td>
+            <td><span class="badge bg-secondary">${(user.language || 'en').toUpperCase()}</span></td>
             <td>${formatDate(user.created_at)}</td>
             <td>
                 <div class="btn-group btn-group-sm">

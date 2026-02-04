@@ -33,19 +33,24 @@ async def get_users(
     skip: int = 0,
     limit: int = 100
 ) -> List[dict]:
-    query = "SELECT * FROM users WHERE 1=1"
+    query = """
+        SELECT u.*, COALESCE(us.language, 'en') as language
+        FROM users u
+        LEFT JOIN user_settings us ON u.id = us.user_id
+        WHERE 1=1
+    """
     params = []
     
     if search:
-        query += " AND (username LIKE ? OR CAST(telegram_id AS TEXT) LIKE ?)"
+        query += " AND (u.username LIKE ? OR CAST(u.telegram_id AS TEXT) LIKE ?)"
         search_param = f"%{search}%"
         params.extend([search_param, search_param])
     
     if status:
-        query += " AND status = ?"
+        query += " AND u.status = ?"
         params.append(status)
     
-    query += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    query += " ORDER BY u.id DESC LIMIT ? OFFSET ?"
     params.extend([limit, skip])
     
     rows = await db.fetch_all(query, tuple(params))
