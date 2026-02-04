@@ -7,6 +7,7 @@ from database.db import db
 from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages
 from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
 from pydantic import BaseModel
+from config.settings import settings as config_settings
 
 
 @asynccontextmanager
@@ -81,7 +82,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
             value=session_token,
             httponly=True,
             max_age=86400 * 7,  # 7 days
-            secure=settings.use_secure_cookies,
+            secure=config_settings.use_secure_cookies,
             samesite="lax"
         )
         return response
@@ -213,5 +214,4 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    from config.settings import settings
-    uvicorn.run(app, host="0.0.0.0", port=settings.port)
+    uvicorn.run(app, host="0.0.0.0", port=config_settings.port)
