@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     admin_user_ids: str = ""
     web_app_url: str = "http://localhost:8000"
     port: int = 8000
+    admin_username: str = "admin"
+    admin_password: str = "admin123"
+    secret_key: str = "your-secret-key-change-this-in-production"
     
     class Config:
         env_file = ".env"
