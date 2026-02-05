@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from config.settings import settings
 from database.db import db
-from app.services import user_service, task_service
+from app.services import user_service, task_service, category_service
 import asyncio
 import logging
 import hashlib
@@ -20,6 +20,12 @@ def generate_referral_code(telegram_id: int) -> str:
     """Generate unique referral code for a user"""
     hash_obj = hashlib.md5(f"{telegram_id}_{settings.bot_token[:10]}".encode())
     return hash_obj.hexdigest()[:8].upper()
+
+
+async def get_user_language(user_id: int) -> str:
+    """Get user's language preference from user_settings"""
+    user_settings = await db.fetch_one("SELECT language FROM user_settings WHERE user_id = ?", (user_id,))
+    return user_settings['language'] if user_settings else 'en'
 
 
 async def process_referral(new_user_id: int, referral_code: str):
@@ -147,6 +153,9 @@ async def cmd_tasks(message: types.Message):
         await message.answer("Your account is banned")
         return
     
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
     # Get all categories
     categories = await db.fetch_all("SELECT * FROM categories WHERE parent_id IS NULL")
     
@@ -156,9 +165,11 @@ async def cmd_tasks(message: types.Message):
     
     keyboard_buttons = []
     for category in categories:
+        # Get translated name
+        category_name = await category_service.get_category_name_by_language(category['id'], user_lang)
         keyboard_buttons.append([
             InlineKeyboardButton(
-                text=f"📁 {category['name']}", 
+                text=f"📁 {category_name}", 
                 callback_data=f"category_{category['id']}"
             )
         ])
@@ -440,11 +451,17 @@ async def show_category_tasks(callback: types.CallbackQuery):
         await callback.answer("Access denied", show_alert=True)
         return
     
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
     # Get category info
     category = await db.fetch_one("SELECT * FROM categories WHERE id = ?", (category_id,))
     if not category:
         await callback.answer("Category not found", show_alert=True)
         return
+    
+    # Get translated category name
+    category_name = await category_service.get_category_name_by_language(category_id, user_lang)
     
     # Get tasks in this category
     tasks = await db.fetch_all(
@@ -453,7 +470,7 @@ async def show_category_tasks(callback: types.CallbackQuery):
     )
     
     if not tasks:
-        await callback.message.answer(f"No tasks available in {category['name']} category.")
+        await callback.message.answer(f"No tasks available in {category_name} category.")
         await callback.answer()
         return
     

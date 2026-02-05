@@ -31,7 +31,7 @@
 
 <!-- Create Category Modal -->
 <div class="modal fade" id="createCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Create Category</h5>
@@ -40,14 +40,26 @@
             <div class="modal-body">
                 <form id="create-category-form">
                     <div class="mb-3">
-                        <label for="create-name" class="form-label">Name</label>
+                        <label for="create-name" class="form-label">Default Name</label>
                         <input type="text" class="form-control" id="create-name" required>
+                        <small class="form-text text-muted">This will be used as fallback if translation is not available</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="create-label" class="form-label">Label (Identifier)</label>
+                        <input type="text" class="form-control" id="create-label" placeholder="e.g., social-media">
+                        <small class="form-text text-muted">Optional: A technical identifier for the category</small>
                     </div>
                     <div class="mb-3">
                         <label for="create-parent" class="form-label">Parent Category</label>
                         <select class="form-select" id="create-parent">
                             <option value="">None (Root Category)</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Translations</label>
+                        <div id="create-translations-container">
+                            <!-- Translations will be loaded dynamically -->
+                        </div>
                     </div>
                 </form>
             </div>
@@ -61,7 +73,7 @@
 
 <!-- Edit Category Modal -->
 <div class="modal fade" id="editCategoryModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Category</h5>
@@ -71,14 +83,26 @@
                 <form id="edit-category-form">
                     <input type="hidden" id="edit-category-id">
                     <div class="mb-3">
-                        <label for="edit-name" class="form-label">Name</label>
+                        <label for="edit-name" class="form-label">Default Name</label>
                         <input type="text" class="form-control" id="edit-name" required>
+                        <small class="form-text text-muted">This will be used as fallback if translation is not available</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-label" class="form-label">Label (Identifier)</label>
+                        <input type="text" class="form-control" id="edit-label" placeholder="e.g., social-media">
+                        <small class="form-text text-muted">Optional: A technical identifier for the category</small>
                     </div>
                     <div class="mb-3">
                         <label for="edit-parent" class="form-label">Parent Category</label>
                         <select class="form-select" id="edit-parent">
                             <option value="">None (Root Category)</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Translations</label>
+                        <div id="edit-translations-container">
+                            <!-- Translations will be loaded dynamically -->
+                        </div>
                     </div>
                 </form>
             </div>

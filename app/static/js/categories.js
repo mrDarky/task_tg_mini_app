@@ -1,6 +1,19 @@
+let availableLanguages = [];
+
+async function loadLanguages() {
+    try {
+        const response = await fetch('/api/languages/');
+        const data = await response.json();
+        availableLanguages = data.languages || [];
+    } catch (error) {
+        console.error('Error loading languages:', error);
+    }
+}
+
 async function loadCategories() {
     try {
-        const response = await fetch('/api/categories/tree/all');
+        // Don't include translations in tree view for performance
+        const response = await fetch('/api/categories/tree/all?include_translations=false');
         const data = await response.json();
         
         displayCategoryTree(data.tree);
@@ -32,6 +45,7 @@ function renderCategory(category, level = 0) {
                 <div>
                     <i class="bi bi-folder${category.children && category.children.length > 0 ? '-fill' : ''}"></i>
                     <strong>${category.name}</strong>
+                    ${category.label ? `<span class="badge bg-info ms-2">${category.label}</span>` : ''}
                     ${category.children && category.children.length > 0 ? `<span class="badge bg-secondary ms-2">${category.children.length} sub</span>` : ''}
                 </div>
                 <div class="btn-group btn-group-sm">
@@ -83,6 +97,45 @@ async function loadCategoryOptions() {
     }
 }
 
+function renderTranslationInputs(containerId, translations = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = availableLanguages.map(lang => {
+        const existingTrans = translations.find(t => t.language_id === lang.id);
+        return `
+            <div class="mb-2">
+                <label class="form-label">${lang.name} (${lang.code.toUpperCase()})</label>
+                <input type="text" 
+                       class="form-control translation-input" 
+                       data-language-id="${lang.id}"
+                       value="${existingTrans ? existingTrans.name : ''}"
+                       placeholder="Category name in ${lang.name}">
+            </div>
+        `;
+    }).join('');
+}
+
+function getTranslationsFromInputs(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    
+    const inputs = container.querySelectorAll('.translation-input');
+    const translations = [];
+    
+    inputs.forEach(input => {
+        const value = input.value.trim();
+        if (value) {
+            translations.push({
+                language_id: parseInt(input.getAttribute('data-language-id')),
+                name: value
+            });
+        }
+    });
+    
+    return translations;
+}
+
 async function createCategory() {
     const name = document.getElementById('create-name').value.trim();
     if (!name) {
@@ -90,10 +143,15 @@ async function createCategory() {
         return;
     }
     
+    const label = document.getElementById('create-label').value.trim();
     const parentId = document.getElementById('create-parent').value;
+    const translations = getTranslationsFromInputs('create-translations-container');
+    
     const data = {
         name: name,
-        parent_id: parentId ? parseInt(parentId) : null
+        label: label || null,
+        parent_id: parentId ? parseInt(parentId) : null,
+        translations: translations.length > 0 ? translations : null
     };
     
     try {
@@ -119,12 +177,16 @@ async function createCategory() {
 
 async function editCategory(categoryId) {
     try {
-        const response = await fetch(`/api/categories/${categoryId}`);
+        const response = await fetch(`/api/categories/${categoryId}?include_translations=true`);
         const category = await response.json();
         
         document.getElementById('edit-category-id').value = category.id;
         document.getElementById('edit-name').value = category.name;
+        document.getElementById('edit-label').value = category.label || '';
         document.getElementById('edit-parent').value = category.parent_id || '';
+        
+        // Render translation inputs with existing values
+        renderTranslationInputs('edit-translations-container', category.translations || []);
         
         const modal = new bootstrap.Modal(document.getElementById('editCategoryModal'));
         modal.show();
@@ -143,10 +205,15 @@ async function saveCategory() {
         return;
     }
     
+    const label = document.getElementById('edit-label').value.trim();
     const parentId = document.getElementById('edit-parent').value;
+    const translations = getTranslationsFromInputs('edit-translations-container');
+    
     const data = {
         name: name,
-        parent_id: parentId ? parseInt(parentId) : null
+        label: label || null,
+        parent_id: parentId ? parseInt(parentId) : null,
+        translations: translations.length > 0 ? translations : null
     };
     
     try {
@@ -190,13 +257,17 @@ async function deleteCategory(categoryId) {
 }
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadLanguages();
     loadCategories();
     
     document.getElementById('create-category-btn').addEventListener('click', createCategory);
     document.getElementById('save-category-btn').addEventListener('click', saveCategory);
     
-    // Reload category options when modals are shown
-    document.getElementById('createCategoryModal').addEventListener('shown.bs.modal', loadCategoryOptions);
+    // Reload category options and render translation inputs when modals are shown
+    document.getElementById('createCategoryModal').addEventListener('shown.bs.modal', () => {
+        loadCategoryOptions();
+        renderTranslationInputs('create-translations-container');
+    });
     document.getElementById('editCategoryModal').addEventListener('shown.bs.modal', loadCategoryOptions);
 });

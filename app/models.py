@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import datetime
 
 
@@ -33,23 +33,32 @@ class User(UserBase):
         from_attributes = True
 
 
+class CategoryTranslation(BaseModel):
+    language_id: int
+    name: str
+
+
 class CategoryBase(BaseModel):
     name: str
+    label: Optional[str] = None
     parent_id: Optional[int] = None
 
 
 class CategoryCreate(CategoryBase):
-    pass
+    translations: Optional[List[CategoryTranslation]] = None
 
 
 class CategoryUpdate(BaseModel):
     name: Optional[str] = None
+    label: Optional[str] = None
     parent_id: Optional[int] = None
+    translations: Optional[List[CategoryTranslation]] = None
 
 
 class Category(CategoryBase):
     id: int
     created_at: datetime
+    translations: Optional[List[CategoryTranslation]] = None
     
     class Config:
         from_attributes = True

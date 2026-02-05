@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from app.models import CategoryCreate, CategoryUpdate
 from app.services import category_service
 from typing import Optional
@@ -17,22 +17,22 @@ async def create_category(category: CategoryCreate):
 
 
 @router.get("/{category_id}", response_model=dict)
-async def get_category(category_id: int):
-    category = await category_service.get_category(category_id)
+async def get_category(category_id: int, include_translations: bool = Query(default=False)):
+    category = await category_service.get_category(category_id, include_translations)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
     return category
 
 
 @router.get("/", response_model=dict)
-async def get_categories(parent_id: Optional[int] = None):
-    categories = await category_service.get_categories(parent_id)
+async def get_categories(parent_id: Optional[int] = None, include_translations: bool = Query(default=False)):
+    categories = await category_service.get_categories(parent_id, include_translations)
     return {"categories": categories}
 
 
 @router.get("/tree/all", response_model=dict)
-async def get_category_tree():
-    tree = await category_service.get_category_tree()
+async def get_category_tree(include_translations: bool = Query(default=False)):
+    tree = await category_service.get_category_tree(include_translations)
     return {"tree": tree}
 
 
@@ -54,3 +54,4 @@ async def delete_category(category_id: int):
     
     await category_service.delete_category(category_id)
     return {"message": "Category deleted successfully"}
+
