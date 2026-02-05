@@ -1,6 +1,4 @@
 // Tasks page functionality
-const { getTelegramUser, getUserByTelegramId, apiRequest, showLoading, createTaskCard } = window.miniApp;
-
 let currentUser = null;
 let allTasks = [];
 let allCategories = [];
@@ -9,7 +7,7 @@ let currentFilter = 'all';
 // Load categories from API
 async function loadCategories() {
     try {
-        const response = await apiRequest('/categories');
+        const response = await window.miniApp.apiRequest('/categories');
         if (response && response.categories) {
             allCategories = response.categories;
             renderCategoryFilters();
@@ -43,8 +41,8 @@ function renderCategoryFilters() {
 
 // Load user and tasks
 async function loadData() {
-    const tgUser = getTelegramUser();
-    currentUser = await getUserByTelegramId(tgUser.id);
+    const tgUser = window.miniApp.getTelegramUser();
+    currentUser = await window.miniApp.getUserByTelegramId(tgUser.id);
     
     if (currentUser) {
         document.getElementById('starBalance').textContent = window.miniApp.formatNumber(currentUser.stars);
@@ -56,9 +54,10 @@ async function loadData() {
 // Load all tasks
 async function loadTasks() {
     const container = document.getElementById('tasksList');
-    showLoading(container);
+    window.miniApp.showLoading(container);
     
-    const tasks = await apiRequest('/tasks?status=active');
+    const response = await window.miniApp.apiRequest('/tasks?status=active');
+    const tasks = response && response.tasks ? response.tasks : response;
     
     if (tasks && tasks.length > 0) {
         allTasks = tasks;
@@ -80,7 +79,7 @@ function filterTasks(category) {
     }
     
     if (filteredTasks.length > 0) {
-        container.innerHTML = filteredTasks.map(task => createTaskCard(task)).join('');
+        container.innerHTML = filteredTasks.map(task => window.miniApp.createTaskCard(task)).join('');
     } else {
         container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>No tasks in this category</p></div>';
     }
