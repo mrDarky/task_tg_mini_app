@@ -337,23 +337,10 @@ async def view_tasks(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    # Get language_id from language code
-    lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (user_lang,))
+    # Apply translations to all tasks at once (avoids N+1 query)
+    tasks = await task_service.apply_translations_to_tasks(tasks[:5], user_lang)
     
-    for task in tasks[:5]:
-        task = dict(task)
-        
-        # Try to get translation for the task
-        if lang_row:
-            trans_row = await db.fetch_one(
-                "SELECT title, description FROM task_translations WHERE task_id = ? AND language_id = ?",
-                (task['id'], lang_row['id'])
-            )
-            if trans_row:
-                task['title'] = trans_row['title']
-                task['description'] = trans_row['description']
-        
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    for task in tasks:
             [InlineKeyboardButton(text="Complete Task", callback_data=f"complete_{task['id']}")],
             [InlineKeyboardButton(text="View", url=task['url'] or "https://example.com")]
         ])
@@ -481,10 +468,12 @@ async def show_category_tasks(callback: types.CallbackQuery):
     # Get translated category name
     category_name = await category_service.get_category_name_by_language(category_id, user_lang)
     
-    # Get tasks in this category
-    tasks = await db.fetch_all(
-        "SELECT * FROM tasks WHERE category_id = ? AND status = 'active' LIMIT 10",
-        (category_id,)
+    # Get tasks in this category with translations using service function
+    tasks = await task_service.get_tasks_by_language(
+        user_lang,
+        category_id=category_id,
+        status='active',
+        limit=10
     )
     
     if not tasks:
@@ -492,23 +481,7 @@ async def show_category_tasks(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    # Get language_id from language code
-    lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (user_lang,))
-    
     for task in tasks:
-        task = dict(task)
-        
-        # Try to get translation for the task
-        if lang_row:
-            trans_row = await db.fetch_one(
-                "SELECT title, description FROM task_translations WHERE task_id = ? AND language_id = ?",
-                (task['id'], lang_row['id'])
-            )
-            if trans_row:
-                task['title'] = trans_row['title']
-                task['description'] = trans_row['description']
-        
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📝 View Details", callback_data=f"task_detail_{task['id']}")],
             [InlineKeyboardButton(text="✅ Complete", callback_data=f"submit_task_{task['id']}")]
         ])

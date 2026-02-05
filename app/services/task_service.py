@@ -180,6 +180,37 @@ async def get_available_tasks_for_user(user_id: int) -> List[dict]:
     return [dict(row) for row in rows]
 
 
+async def apply_translations_to_tasks(tasks: List[dict], language_code: str) -> List[dict]:
+    """Helper function to apply translations to a list of tasks - avoids N+1 queries"""
+    if not tasks:
+        return tasks
+    
+    # Get language_id from code
+    lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (language_code,))
+    
+    if lang_row:
+        # Batch fetch all translations at once
+        task_ids = [task['id'] for task in tasks]
+        placeholders = ','.join(['?' for _ in task_ids])
+        
+        trans_rows = await db.fetch_all(
+            f"SELECT task_id, title, description FROM task_translations WHERE task_id IN ({placeholders}) AND language_id = ?",
+            (*task_ids, lang_row['id'])
+        )
+        
+        # Create a map of task_id to translation
+        trans_map = {row['task_id']: row for row in trans_rows}
+        
+        # Apply translations to tasks
+        for task in tasks:
+            if task['id'] in trans_map:
+                trans = trans_map[task['id']]
+                task['title'] = trans['title']
+                task['description'] = trans['description']
+    
+    return tasks
+
+
 async def complete_task(user_id: int, task_id: int) -> bool:
     query = """
         INSERT INTO user_tasks (user_id, task_id, status, completed_at)
@@ -262,18 +293,30 @@ async def get_tasks_by_language(language_code: str, **filters) -> List[dict]:
     """Get all tasks with translations for specific language"""
     tasks = await get_tasks(**filters)
     
+    if not tasks:
+        return tasks
+    
     # Get language_id from code
     lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (language_code,))
     
     if lang_row:
+        # Batch fetch all translations at once to avoid N+1 query
+        task_ids = [task['id'] for task in tasks]
+        placeholders = ','.join(['?' for _ in task_ids])
+        
+        trans_rows = await db.fetch_all(
+            f"SELECT task_id, title, description FROM task_translations WHERE task_id IN ({placeholders}) AND language_id = ?",
+            (*task_ids, lang_row['id'])
+        )
+        
+        # Create a map of task_id to translation
+        trans_map = {row['task_id']: row for row in trans_rows}
+        
+        # Apply translations to tasks
         for task in tasks:
-            # Try to get translation for each task
-            trans_row = await db.fetch_one(
-                "SELECT title, description FROM task_translations WHERE task_id = ? AND language_id = ?",
-                (task['id'], lang_row['id'])
-            )
-            if trans_row:
-                task['title'] = trans_row['title']
-                task['description'] = trans_row['description']
+            if task['id'] in trans_map:
+                trans = trans_map[task['id']]
+                task['title'] = trans['title']
+                task['description'] = trans['description']
     
     return tasks
