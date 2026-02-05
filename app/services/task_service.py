@@ -76,9 +76,28 @@ async def get_tasks(
     rows = await db.fetch_all(query, tuple(params))
     tasks = [dict(row) for row in rows]
     
-    if include_translations:
+    if include_translations and tasks:
+        # Batch fetch all translations to avoid N+1 query
+        task_ids = [task['id'] for task in tasks]
+        placeholders = ','.join(['?' for _ in task_ids])
+        
+        trans_rows = await db.fetch_all(
+            f"SELECT * FROM task_translations WHERE task_id IN ({placeholders})",
+            tuple(task_ids)
+        )
+        
+        # Group translations by task_id
+        trans_by_task = {}
+        for trans in trans_rows:
+            trans_dict = dict(trans)
+            task_id = trans_dict['task_id']
+            if task_id not in trans_by_task:
+                trans_by_task[task_id] = []
+            trans_by_task[task_id].append(trans_dict)
+        
+        # Assign translations to tasks
         for task in tasks:
-            task['translations'] = await get_task_translations(task['id'])
+            task['translations'] = trans_by_task.get(task['id'], [])
     
     return tasks
 

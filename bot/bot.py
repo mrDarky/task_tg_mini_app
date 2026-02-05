@@ -341,6 +341,7 @@ async def view_tasks(callback: types.CallbackQuery):
     tasks = await task_service.apply_translations_to_tasks(tasks[:5], user_lang)
     
     for task in tasks:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Complete Task", callback_data=f"complete_{task['id']}")],
             [InlineKeyboardButton(text="View", url=task['url'] or "https://example.com")]
         ])
@@ -482,6 +483,7 @@ async def show_category_tasks(callback: types.CallbackQuery):
         return
     
     for task in tasks:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📝 View Details", callback_data=f"task_detail_{task['id']}")],
             [InlineKeyboardButton(text="✅ Complete", callback_data=f"submit_task_{task['id']}")]
         ])
