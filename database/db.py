@@ -74,6 +74,22 @@ class Database:
             )
         """)
         
+        # Task translations table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS task_translations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                task_id INTEGER NOT NULL,
+                language_id INTEGER NOT NULL,
+                title TEXT NOT NULL,
+                description TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
+                FOREIGN KEY (language_id) REFERENCES languages (id) ON DELETE CASCADE,
+                UNIQUE(task_id, language_id)
+            )
+        """)
+        
         await self.connection.execute("""
             CREATE TABLE IF NOT EXISTS user_tasks (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

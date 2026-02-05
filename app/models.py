@@ -38,6 +38,12 @@ class CategoryTranslation(BaseModel):
     name: str
 
 
+class TaskTranslation(BaseModel):
+    language_id: int
+    title: str
+    description: Optional[str] = None
+
+
 class CategoryBase(BaseModel):
     name: str
     label: Optional[str] = None
@@ -76,7 +82,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    pass
+    translations: Optional[List[TaskTranslation]] = None
 
 
 class TaskUpdate(BaseModel):
@@ -88,12 +94,14 @@ class TaskUpdate(BaseModel):
     status: Optional[Literal['active', 'inactive', 'completed']] = None
     category_id: Optional[int] = None
     completion_limit: Optional[int] = None
+    translations: Optional[List[TaskTranslation]] = None
 
 
 class Task(TaskBase):
     id: int
     created_at: datetime
     updated_at: datetime
+    translations: Optional[List[TaskTranslation]] = None
     
     class Config:
         from_attributes = True
