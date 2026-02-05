@@ -327,6 +327,9 @@ async def view_tasks(callback: types.CallbackQuery):
         await callback.answer("Your account is banned", show_alert=True)
         return
     
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
     tasks = await task_service.get_available_tasks_for_user(user['id'])
     
     if not tasks:
@@ -334,7 +337,22 @@ async def view_tasks(callback: types.CallbackQuery):
         await callback.answer()
         return
     
+    # Get language_id from language code
+    lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (user_lang,))
+    
     for task in tasks[:5]:
+        task = dict(task)
+        
+        # Try to get translation for the task
+        if lang_row:
+            trans_row = await db.fetch_one(
+                "SELECT title, description FROM task_translations WHERE task_id = ? AND language_id = ?",
+                (task['id'], lang_row['id'])
+            )
+            if trans_row:
+                task['title'] = trans_row['title']
+                task['description'] = trans_row['description']
+        
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Complete Task", callback_data=f"complete_{task['id']}")],
             [InlineKeyboardButton(text="View", url=task['url'] or "https://example.com")]
@@ -474,7 +492,22 @@ async def show_category_tasks(callback: types.CallbackQuery):
         await callback.answer()
         return
     
+    # Get language_id from language code
+    lang_row = await db.fetch_one("SELECT id FROM languages WHERE code = ?", (user_lang,))
+    
     for task in tasks:
+        task = dict(task)
+        
+        # Try to get translation for the task
+        if lang_row:
+            trans_row = await db.fetch_one(
+                "SELECT title, description FROM task_translations WHERE task_id = ? AND language_id = ?",
+                (task['id'], lang_row['id'])
+            )
+            if trans_row:
+                task['title'] = trans_row['title']
+                task['description'] = trans_row['description']
+        
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📝 View Details", callback_data=f"task_detail_{task['id']}")],
             [InlineKeyboardButton(text="✅ Complete", callback_data=f"submit_task_{task['id']}")]
@@ -496,7 +529,17 @@ async def show_category_tasks(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("task_detail_"))
 async def show_task_detail(callback: types.CallbackQuery):
     task_id = int(callback.data.split("_")[2])
-    task = await task_service.get_task(task_id)
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    
+    if not user:
+        await callback.answer("Please start the bot first with /start")
+        return
+    
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
+    # Get task with translation
+    task = await task_service.get_task_by_language(task_id, user_lang)
     
     if not task:
         await callback.answer("Task not found", show_alert=True)
