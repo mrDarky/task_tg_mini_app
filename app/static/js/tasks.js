@@ -3,6 +3,17 @@ let currentSearch = '';
 let currentType = '';
 let currentStatus = '';
 const limit = 20;
+let availableLanguages = [];
+
+async function loadLanguages() {
+    try {
+        const response = await fetch('/api/languages/');
+        const data = await response.json();
+        availableLanguages = data.languages || [];
+    } catch (error) {
+        console.error('Error loading languages:', error);
+    }
+}
 
 async function loadTasks() {
     try {
@@ -98,13 +109,16 @@ function changePage(page) {
 }
 
 async function createTask() {
+    const translations = getTranslationsFromInputs('create-translations-container');
+    
     const data = {
         title: document.getElementById('create-title').value,
         description: document.getElementById('create-description').value,
         type: document.getElementById('create-type').value,
         url: document.getElementById('create-url').value,
         reward: parseInt(document.getElementById('create-reward').value),
-        status: 'active'
+        status: 'active',
+        translations: translations.length > 0 ? translations : undefined
     };
     
     try {
@@ -130,7 +144,7 @@ async function createTask() {
 
 async function editTask(taskId) {
     try {
-        const response = await fetch(`/api/tasks/${taskId}`);
+        const response = await fetch(`/api/tasks/${taskId}?include_translations=true`);
         const task = await response.json();
         
         document.getElementById('edit-task-id').value = task.id;
@@ -140,6 +154,9 @@ async function editTask(taskId) {
         document.getElementById('edit-url').value = task.url || '';
         document.getElementById('edit-reward').value = task.reward;
         document.getElementById('edit-status').value = task.status;
+        
+        // Render translation inputs with existing translations
+        renderTranslationInputs('edit-translations-container', task.translations || []);
         
         const modal = new bootstrap.Modal(document.getElementById('editTaskModal'));
         modal.show();
@@ -151,13 +168,16 @@ async function editTask(taskId) {
 
 async function saveTask() {
     const taskId = document.getElementById('edit-task-id').value;
+    const translations = getTranslationsFromInputs('edit-translations-container');
+    
     const data = {
         title: document.getElementById('edit-title').value,
         description: document.getElementById('edit-description').value,
         type: document.getElementById('edit-type').value,
         url: document.getElementById('edit-url').value,
         reward: parseInt(document.getElementById('edit-reward').value),
-        status: document.getElementById('edit-status').value
+        status: document.getElementById('edit-status').value,
+        translations: translations.length > 0 ? translations : undefined
     };
     
     try {
@@ -274,4 +294,63 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('save-task-btn').addEventListener('click', saveTask);
     document.getElementById('bulk-deactivate-btn').addEventListener('click', () => bulkUpdateStatus('inactive'));
     document.getElementById('bulk-activate-btn').addEventListener('click', () => bulkUpdateStatus('active'));
+    
+    // Load languages and render translation inputs when modals are shown
+    loadLanguages().then(() => {
+        document.getElementById('createTaskModal').addEventListener('shown.bs.modal', () => {
+            renderTranslationInputs('create-translations-container');
+        });
+    });
 });
+
+function renderTranslationInputs(containerId, translations = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    container.innerHTML = availableLanguages.map(lang => {
+        const existingTrans = translations.find(t => t.language_id === lang.id);
+        return `
+            <div class="row mb-2">
+                <div class="col-md-12">
+                    <label class="form-label fw-bold">${lang.name} (${lang.code.toUpperCase()})</label>
+                </div>
+                <div class="col-md-12 mb-2">
+                    <input type="text" 
+                           class="form-control translation-title" 
+                           data-language-id="${lang.id}"
+                           value="${existingTrans ? existingTrans.title : ''}"
+                           placeholder="Title in ${lang.name}">
+                </div>
+                <div class="col-md-12">
+                    <textarea class="form-control translation-description" 
+                              data-language-id="${lang.id}"
+                              rows="2"
+                              placeholder="Description in ${lang.name}">${existingTrans ? (existingTrans.description || '') : ''}</textarea>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function getTranslationsFromInputs(containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return [];
+    
+    const translations = [];
+    
+    availableLanguages.forEach(lang => {
+        const titleInput = container.querySelector(`.translation-title[data-language-id="${lang.id}"]`);
+        const descInput = container.querySelector(`.translation-description[data-language-id="${lang.id}"]`);
+        
+        if (titleInput && titleInput.value.trim()) {
+            translations.push({
+                language_id: lang.id,
+                title: titleInput.value.trim(),
+                description: descInput ? descInput.value.trim() : null
+            });
+        }
+    });
+    
+    return translations;
+}
+
