@@ -57,7 +57,8 @@ async function loadTasks() {
     window.miniApp.showLoading(container);
     
     const response = await window.miniApp.apiRequest('/tasks?status=active');
-    const tasks = response && response.tasks ? response.tasks : response;
+    // API returns {tasks: [...], total: n, skip: n, limit: n}
+    const tasks = response && response.tasks ? response.tasks : [];
     
     if (tasks && tasks.length > 0) {
         allTasks = tasks;
@@ -74,8 +75,9 @@ function filterTasks(category) {
     
     let filteredTasks = allTasks;
     if (category !== 'all') {
-        // Filter by category_id
-        filteredTasks = allTasks.filter(task => task.category_id === category);
+        // Filter by category_id - convert both to numbers for comparison
+        const categoryId = typeof category === 'string' ? parseInt(category) : category;
+        filteredTasks = allTasks.filter(task => task.category_id === categoryId);
     }
     
     if (filteredTasks.length > 0) {

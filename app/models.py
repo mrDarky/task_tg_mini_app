@@ -73,7 +73,7 @@ class Category(CategoryBase):
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
-    type: str  # Changed from hardcoded Literal to dynamic string based on categories
+    type: str  # Task type - should match a category name for consistency
     url: Optional[str] = None
     reward: int = 0
     status: Literal['active', 'inactive', 'completed'] = 'active'
@@ -88,7 +88,7 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    type: Optional[str] = None  # Changed from hardcoded Literal to dynamic string
+    type: Optional[str] = None  # Task type - should match a category name for consistency
     url: Optional[str] = None
     reward: Optional[int] = None
     status: Optional[Literal['active', 'inactive', 'completed']] = None
