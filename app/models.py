@@ -73,7 +73,7 @@ class Category(CategoryBase):
 class TaskBase(BaseModel):
     title: str
     description: Optional[str] = None
-    type: Literal['youtube', 'tiktok', 'subscribe']
+    type: str  # Changed from hardcoded Literal to dynamic string based on categories
     url: Optional[str] = None
     reward: int = 0
     status: Literal['active', 'inactive', 'completed'] = 'active'
@@ -88,7 +88,7 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = None
     description: Optional[str] = None
-    type: Optional[Literal['youtube', 'tiktok', 'subscribe']] = None
+    type: Optional[str] = None  # Changed from hardcoded Literal to dynamic string
     url: Optional[str] = None
     reward: Optional[int] = None
     status: Optional[Literal['active', 'inactive', 'completed']] = None

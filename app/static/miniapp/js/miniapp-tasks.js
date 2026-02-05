@@ -3,7 +3,43 @@ const { getTelegramUser, getUserByTelegramId, apiRequest, showLoading, createTas
 
 let currentUser = null;
 let allTasks = [];
+let allCategories = [];
 let currentFilter = 'all';
+
+// Load categories from API
+async function loadCategories() {
+    try {
+        const response = await apiRequest('/categories');
+        if (response && response.categories) {
+            allCategories = response.categories;
+            renderCategoryFilters();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Render category filter buttons
+function renderCategoryFilters() {
+    const container = document.getElementById('categoryFilters');
+    const allButton = container.querySelector('[data-category="all"]');
+    
+    // Remove existing category buttons (keep "All" button)
+    const existingButtons = container.querySelectorAll('button[data-category]:not([data-category="all"])');
+    existingButtons.forEach(btn => btn.remove());
+    
+    // Add category buttons from database
+    allCategories.forEach(category => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-sm btn-outline-primary';
+        button.setAttribute('data-category', category.id);
+        button.textContent = category.name;
+        button.addEventListener('click', () => {
+            filterTasks(category.id);
+        });
+        container.appendChild(button);
+    });
+}
 
 // Load user and tasks
 async function loadData() {
@@ -12,6 +48,7 @@ async function loadData() {
     
     if (currentUser) {
         document.getElementById('starBalance').textContent = window.miniApp.formatNumber(currentUser.stars);
+        await loadCategories();
         await loadTasks();
     }
 }
@@ -38,7 +75,8 @@ function filterTasks(category) {
     
     let filteredTasks = allTasks;
     if (category !== 'all') {
-        filteredTasks = allTasks.filter(task => task.type === category);
+        // Filter by category_id
+        filteredTasks = allTasks.filter(task => task.category_id === category);
     }
     
     if (filteredTasks.length > 0) {
@@ -63,12 +101,4 @@ function filterTasks(category) {
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    
-    // Category filter buttons
-    document.querySelectorAll('#categoryFilters button').forEach(button => {
-        button.addEventListener('click', () => {
-            const category = button.getAttribute('data-category');
-            filterTasks(category);
-        });
-    });
 });

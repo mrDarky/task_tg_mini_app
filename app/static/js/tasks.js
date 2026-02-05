@@ -4,6 +4,7 @@ let currentType = '';
 let currentStatus = '';
 const limit = 20;
 let availableLanguages = [];
+let availableCategories = [];
 
 async function loadLanguages() {
     try {
@@ -13,6 +14,82 @@ async function loadLanguages() {
     } catch (error) {
         console.error('Error loading languages:', error);
     }
+}
+
+async function loadCategories() {
+    try {
+        const response = await fetch('/api/categories/');
+        const data = await response.json();
+        availableCategories = data.categories || [];
+        populateTaskTypeOptions();
+        populateCategoryOptions();
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+function populateTaskTypeOptions() {
+    const typeFilterSelect = document.getElementById('type-filter');
+    const createTypeSelect = document.getElementById('create-type');
+    const editTypeSelect = document.getElementById('edit-type');
+    
+    // Generate unique task types from categories
+    const uniqueTypes = [...new Set(availableCategories.map(cat => cat.name))];
+    
+    // Update type filter dropdown
+    if (typeFilterSelect) {
+        const currentValue = typeFilterSelect.value;
+        // Keep "All Types" option
+        typeFilterSelect.innerHTML = '<option value="">All Types</option>';
+        uniqueTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            typeFilterSelect.appendChild(option);
+        });
+        if (currentValue) typeFilterSelect.value = currentValue;
+    }
+    
+    // Update create task type dropdown
+    if (createTypeSelect) {
+        createTypeSelect.innerHTML = '';
+        uniqueTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            createTypeSelect.appendChild(option);
+        });
+    }
+    
+    // Update edit task type dropdown
+    if (editTypeSelect) {
+        editTypeSelect.innerHTML = '';
+        uniqueTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            editTypeSelect.appendChild(option);
+        });
+    }
+}
+
+function populateCategoryOptions() {
+    const createCategorySelect = document.getElementById('create-category');
+    const editCategorySelect = document.getElementById('edit-category');
+    
+    [createCategorySelect, editCategorySelect].forEach(select => {
+        if (select) {
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">None</option>';
+            availableCategories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                select.appendChild(option);
+            });
+            if (currentValue) select.value = currentValue;
+        }
+    });
 }
 
 async function loadTasks() {
@@ -111,6 +188,8 @@ function changePage(page) {
 async function createTask() {
     const translations = getTranslationsFromInputs('create-translations-container');
     
+    const categoryId = document.getElementById('create-category').value;
+    
     const data = {
         title: document.getElementById('create-title').value,
         description: document.getElementById('create-description').value,
@@ -118,6 +197,7 @@ async function createTask() {
         url: document.getElementById('create-url').value,
         reward: parseInt(document.getElementById('create-reward').value),
         status: 'active',
+        category_id: categoryId ? parseInt(categoryId) : null,
         translations: translations.length > 0 ? translations : undefined
     };
     
@@ -154,6 +234,7 @@ async function editTask(taskId) {
         document.getElementById('edit-url').value = task.url || '';
         document.getElementById('edit-reward').value = task.reward;
         document.getElementById('edit-status').value = task.status;
+        document.getElementById('edit-category').value = task.category_id || '';
         
         // Render translation inputs with existing translations
         renderTranslationInputs('edit-translations-container', task.translations || []);
@@ -170,6 +251,8 @@ async function saveTask() {
     const taskId = document.getElementById('edit-task-id').value;
     const translations = getTranslationsFromInputs('edit-translations-container');
     
+    const categoryId = document.getElementById('edit-category').value;
+    
     const data = {
         title: document.getElementById('edit-title').value,
         description: document.getElementById('edit-description').value,
@@ -177,6 +260,7 @@ async function saveTask() {
         url: document.getElementById('edit-url').value,
         reward: parseInt(document.getElementById('edit-reward').value),
         status: document.getElementById('edit-status').value,
+        category_id: categoryId ? parseInt(categoryId) : null,
         translations: translations.length > 0 ? translations : undefined
     };
     
@@ -260,7 +344,12 @@ async function bulkUpdateStatus(status) {
 }
 
 // Event listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Load languages and categories first
+    await loadLanguages();
+    await loadCategories();
+    
+    // Then load tasks
     loadTasks();
     
     document.getElementById('search-btn').addEventListener('click', () => {
@@ -295,11 +384,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('bulk-deactivate-btn').addEventListener('click', () => bulkUpdateStatus('inactive'));
     document.getElementById('bulk-activate-btn').addEventListener('click', () => bulkUpdateStatus('active'));
     
-    // Load languages and render translation inputs when modals are shown
-    loadLanguages().then(() => {
-        document.getElementById('createTaskModal').addEventListener('shown.bs.modal', () => {
-            renderTranslationInputs('create-translations-container');
-        });
+    // Render translation inputs when modals are shown
+    document.getElementById('createTaskModal').addEventListener('shown.bs.modal', () => {
+        renderTranslationInputs('create-translations-container');
     });
 });
 

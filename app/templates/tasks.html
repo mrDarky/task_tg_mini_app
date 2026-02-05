@@ -16,9 +16,7 @@
     <div class="col-md-2">
         <select class="form-select" id="type-filter">
             <option value="">All Types</option>
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok</option>
-            <option value="subscribe">Subscribe</option>
+            <!-- Task types will be loaded from categories -->
         </select>
     </div>
     <div class="col-md-2">
@@ -102,9 +100,14 @@
                     <div class="mb-3">
                         <label for="create-type" class="form-label">Type</label>
                         <select class="form-select" id="create-type" required>
-                            <option value="youtube">YouTube</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="subscribe">Subscribe</option>
+                            <!-- Task types will be loaded from categories -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="create-category" class="form-label">Category</label>
+                        <select class="form-select" id="create-category">
+                            <option value="">None</option>
+                            <!-- Categories will be loaded dynamically -->
                         </select>
                     </div>
                     <div class="mb-3">
@@ -154,9 +157,14 @@
                     <div class="mb-3">
                         <label for="edit-type" class="form-label">Type</label>
                         <select class="form-select" id="edit-type">
-                            <option value="youtube">YouTube</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="subscribe">Subscribe</option>
+                            <!-- Task types will be loaded from categories -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit-category" class="form-label">Category</label>
+                        <select class="form-select" id="edit-category">
+                            <option value="">None</option>
+                            <!-- Categories will be loaded dynamically -->
                         </select>
                     </div>
                     <div class="mb-3">
