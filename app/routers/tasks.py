@@ -17,8 +17,16 @@ async def create_task(task: TaskCreate):
 
 
 @router.get("/{task_id}", response_model=dict)
-async def get_task(task_id: int):
-    task = await task_service.get_task(task_id)
+async def get_task(
+    task_id: int,
+    include_translations: bool = Query(False),
+    language_code: Optional[str] = Query(None)
+):
+    if language_code:
+        task = await task_service.get_task_by_language(task_id, language_code)
+    else:
+        task = await task_service.get_task(task_id, include_translations=include_translations)
+    
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     return task
@@ -31,9 +39,21 @@ async def get_tasks(
     status: Optional[str] = Query(None),
     category_id: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
+    include_translations: bool = Query(False),
+    language_code: Optional[str] = Query(None)
 ):
-    tasks = await task_service.get_tasks(search, task_type, status, category_id, skip, limit)
+    if language_code:
+        tasks = await task_service.get_tasks_by_language(
+            language_code, search=search, task_type=task_type, 
+            status=status, category_id=category_id, skip=skip, limit=limit
+        )
+    else:
+        tasks = await task_service.get_tasks(
+            search, task_type, status, category_id, skip, limit, 
+            include_translations=include_translations
+        )
+    
     total = await task_service.count_tasks(search, task_type, status, category_id)
     return {
         "tasks": tasks,
@@ -70,3 +90,42 @@ async def bulk_update_tasks(task_ids: List[int], update_data: dict):
     
     await task_service.bulk_update_tasks(task_ids, update_data)
     return {"message": f"Bulk update applied to {len(task_ids)} tasks"}
+
+
+@router.get("/{task_id}/translations", response_model=dict)
+async def get_task_translations(task_id: int):
+    """Get all translations for a task"""
+    task = await task_service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    translations = await task_service.get_task_translations(task_id)
+    return {"translations": translations}
+
+
+@router.post("/{task_id}/translations", response_model=dict)
+async def create_task_translation(
+    task_id: int,
+    language_id: int,
+    title: str,
+    description: Optional[str] = None
+):
+    """Create or update a translation for a task"""
+    task = await task_service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    await task_service.update_task_translation(task_id, language_id, title, description)
+    return {"message": "Translation created/updated successfully"}
+
+
+@router.delete("/{task_id}/translations/{language_id}", response_model=dict)
+async def delete_task_translation(task_id: int, language_id: int):
+    """Delete a translation for a task"""
+    task = await task_service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    await task_service.delete_task_translation(task_id, language_id)
+    return {"message": "Translation deleted successfully"}
+

@@ -327,6 +327,9 @@ async def view_tasks(callback: types.CallbackQuery):
         await callback.answer("Your account is banned", show_alert=True)
         return
     
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
     tasks = await task_service.get_available_tasks_for_user(user['id'])
     
     if not tasks:
@@ -334,7 +337,10 @@ async def view_tasks(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    for task in tasks[:5]:
+    # Apply translations to all tasks at once (avoids N+1 query)
+    tasks = await task_service.apply_translations_to_tasks(tasks[:5], user_lang)
+    
+    for task in tasks:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Complete Task", callback_data=f"complete_{task['id']}")],
             [InlineKeyboardButton(text="View", url=task['url'] or "https://example.com")]
@@ -463,10 +469,12 @@ async def show_category_tasks(callback: types.CallbackQuery):
     # Get translated category name
     category_name = await category_service.get_category_name_by_language(category_id, user_lang)
     
-    # Get tasks in this category
-    tasks = await db.fetch_all(
-        "SELECT * FROM tasks WHERE category_id = ? AND status = 'active' LIMIT 10",
-        (category_id,)
+    # Get tasks in this category with translations using service function
+    tasks = await task_service.get_tasks_by_language(
+        user_lang,
+        category_id=category_id,
+        status='active',
+        limit=10
     )
     
     if not tasks:
@@ -496,7 +504,17 @@ async def show_category_tasks(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("task_detail_"))
 async def show_task_detail(callback: types.CallbackQuery):
     task_id = int(callback.data.split("_")[2])
-    task = await task_service.get_task(task_id)
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    
+    if not user:
+        await callback.answer("Please start the bot first with /start")
+        return
+    
+    # Get user language
+    user_lang = await get_user_language(user['id'])
+    
+    # Get task with translation
+    task = await task_service.get_task_by_language(task_id, user_lang)
     
     if not task:
         await callback.answer("Task not found", show_alert=True)
