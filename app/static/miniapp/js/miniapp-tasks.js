@@ -1,17 +1,52 @@
 // Tasks page functionality
-const { getTelegramUser, getUserByTelegramId, apiRequest, showLoading, createTaskCard } = window.miniApp;
-
 let currentUser = null;
 let allTasks = [];
+let allCategories = [];
 let currentFilter = 'all';
+
+// Load categories from API
+async function loadCategories() {
+    try {
+        const response = await window.miniApp.apiRequest('/categories');
+        if (response && response.categories) {
+            allCategories = response.categories;
+            renderCategoryFilters();
+        }
+    } catch (error) {
+        console.error('Error loading categories:', error);
+    }
+}
+
+// Render category filter buttons
+function renderCategoryFilters() {
+    const container = document.getElementById('categoryFilters');
+    const allButton = container.querySelector('[data-category="all"]');
+    
+    // Remove existing category buttons (keep "All" button)
+    const existingButtons = container.querySelectorAll('button[data-category]:not([data-category="all"])');
+    existingButtons.forEach(btn => btn.remove());
+    
+    // Add category buttons from database
+    allCategories.forEach(category => {
+        const button = document.createElement('button');
+        button.className = 'btn btn-sm btn-outline-primary';
+        button.setAttribute('data-category', category.id);
+        button.textContent = category.name;
+        button.addEventListener('click', () => {
+            filterTasks(category.id);
+        });
+        container.appendChild(button);
+    });
+}
 
 // Load user and tasks
 async function loadData() {
-    const tgUser = getTelegramUser();
-    currentUser = await getUserByTelegramId(tgUser.id);
+    const tgUser = window.miniApp.getTelegramUser();
+    currentUser = await window.miniApp.getUserByTelegramId(tgUser.id);
     
     if (currentUser) {
         document.getElementById('starBalance').textContent = window.miniApp.formatNumber(currentUser.stars);
+        await loadCategories();
         await loadTasks();
     }
 }
@@ -19,9 +54,11 @@ async function loadData() {
 // Load all tasks
 async function loadTasks() {
     const container = document.getElementById('tasksList');
-    showLoading(container);
+    window.miniApp.showLoading(container);
     
-    const tasks = await apiRequest('/tasks?status=active');
+    const response = await window.miniApp.apiRequest('/tasks?status=active');
+    // API returns {tasks: [...], total: n, skip: n, limit: n}
+    const tasks = response && response.tasks ? response.tasks : [];
     
     if (tasks && tasks.length > 0) {
         allTasks = tasks;
@@ -38,11 +75,13 @@ function filterTasks(category) {
     
     let filteredTasks = allTasks;
     if (category !== 'all') {
-        filteredTasks = allTasks.filter(task => task.type === category);
+        // Filter by category_id - convert both to numbers for comparison
+        const categoryId = typeof category === 'string' ? parseInt(category) : category;
+        filteredTasks = allTasks.filter(task => task.category_id === categoryId);
     }
     
     if (filteredTasks.length > 0) {
-        container.innerHTML = filteredTasks.map(task => createTaskCard(task)).join('');
+        container.innerHTML = filteredTasks.map(task => window.miniApp.createTaskCard(task)).join('');
     } else {
         container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>No tasks in this category</p></div>';
     }
@@ -63,12 +102,4 @@ function filterTasks(category) {
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
-    
-    // Category filter buttons
-    document.querySelectorAll('#categoryFilters button').forEach(button => {
-        button.addEventListener('click', () => {
-            const category = button.getAttribute('data-category');
-            filterTasks(category);
-        });
-    });
 });

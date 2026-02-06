@@ -46,9 +46,9 @@ async function apiRequest(endpoint, options = {}) {
 
 // Get user by Telegram ID
 async function getUserByTelegramId(telegramId) {
-    const users = await apiRequest(`/users?search=${telegramId}`);
-    if (users && users.length > 0) {
-        return users[0];
+    const response = await apiRequest(`/users?search=${telegramId}`);
+    if (response && response.users && response.users.length > 0) {
+        return response.users[0];
     }
     return null;
 }
