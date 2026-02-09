@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from config.settings import settings
 from database.db import db
 from app.services import user_service, task_service, category_service
+from app.models import UserCreate
 import asyncio
 import logging
 import hashlib
@@ -78,14 +79,15 @@ async def cmd_start(message: types.Message):
         # Generate unique referral code for new user
         user_referral_code = generate_referral_code(message.from_user.id)
         
-        user_id = await user_service.create_user({
-            "telegram_id": message.from_user.id,
-            "username": message.from_user.username,
-            "referral_code": user_referral_code,
-            "stars": 0,
-            "status": "active",
-            "role": "user"
-        })
+        user_data = UserCreate(
+            telegram_id=message.from_user.id,
+            username=message.from_user.username,
+            referral_code=user_referral_code,
+            stars=0,
+            status="active",
+            role="user"
+        )
+        user_id = await user_service.create_user(user_data)
         user = await user_service.get_user(user_id)
         
         # Process referral if code was provided
