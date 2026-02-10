@@ -86,20 +86,32 @@ class LoggerService:
             logger.error(f"Failed to send Telegram notification: {e}")
     
     @staticmethod
-    async def get_logs(offset: int = 0, limit: int = 1000, level: str = None):
+    async def get_logs(offset: int = 0, limit: int = 1000, level: str = None, levels: list = None):
         """
         Retrieve logs from database
         
         Args:
             offset: Number of records to skip
             limit: Maximum number of records to return
-            level: Filter by log level (ERROR for errors only)
+            level: Filter by single log level
+            levels: Filter by multiple log levels (takes precedence over level)
         
         Returns:
             List of log records
         """
         try:
-            if level:
+            if levels:
+                placeholders = ','.join('?' * len(levels))
+                query = f"""
+                    SELECT id, level, message, traceback, source, created_at 
+                    FROM logs 
+                    WHERE level IN ({placeholders})
+                    ORDER BY created_at DESC 
+                    LIMIT ? OFFSET ?
+                """
+                params = (*levels, limit, offset)
+                logs = await db.fetch_all(query, params)
+            elif level:
                 query = """
                     SELECT id, level, message, traceback, source, created_at 
                     FROM logs 
@@ -124,10 +136,14 @@ class LoggerService:
             return []
     
     @staticmethod
-    async def get_logs_count(level: str = None):
+    async def get_logs_count(level: str = None, levels: list = None):
         """Get total count of logs"""
         try:
-            if level:
+            if levels:
+                placeholders = ','.join('?' * len(levels))
+                query = f"SELECT COUNT(*) as count FROM logs WHERE level IN ({placeholders})"
+                result = await db.fetch_one(query, tuple(levels))
+            elif level:
                 query = "SELECT COUNT(*) as count FROM logs WHERE level = ?"
                 result = await db.fetch_one(query, (level,))
             else:

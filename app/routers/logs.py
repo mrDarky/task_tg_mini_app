@@ -39,24 +39,12 @@ async def get_error_logs(
     username: str = Depends(require_auth)
 ):
     """Get only error logs (ERROR and CRITICAL levels)"""
-    # Get both ERROR and CRITICAL logs
-    error_logs = await LoggerService.get_logs(offset=offset, limit=limit, level='ERROR')
-    critical_logs = await LoggerService.get_logs(offset=0, limit=limit, level='CRITICAL')
-    
-    # Combine and sort by created_at
-    all_errors = error_logs + critical_logs
-    all_errors.sort(key=lambda x: x['created_at'], reverse=True)
-    
-    # Apply pagination
-    paginated_errors = all_errors[offset:offset + limit]
-    
-    # Get total count
-    error_count = await LoggerService.get_logs_count(level='ERROR')
-    critical_count = await LoggerService.get_logs_count(level='CRITICAL')
-    total = error_count + critical_count
+    # Get both ERROR and CRITICAL logs in a single query
+    logs = await LoggerService.get_logs(offset=offset, limit=limit, levels=['ERROR', 'CRITICAL'])
+    total = await LoggerService.get_logs_count(levels=['ERROR', 'CRITICAL'])
     
     return {
-        "logs": paginated_errors,
+        "logs": logs,
         "total": total,
         "offset": offset,
         "limit": limit

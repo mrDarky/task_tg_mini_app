@@ -108,31 +108,25 @@ function createLogRow(log) {
     row.innerHTML = `
         <td>${formattedDate}</td>
         <td>${levelBadge}</td>
-        <td>${log.source || '-'}</td>
+        <td>${escapeHtml(log.source || '-')}</td>
         <td>${escapeHtml(truncatedMessage)}</td>
         <td>
-            <button class="btn btn-sm btn-outline-primary view-log-btn" 
-                    data-id="${log.id}"
-                    data-level="${log.level}" 
-                    data-time="${formattedDate}" 
-                    data-source="${log.source || '-'}" 
-                    data-message="${escapeHtml(log.message)}" 
-                    data-traceback="${escapeHtml(log.traceback || '')}">
+            <button class="btn btn-sm btn-outline-primary view-log-btn">
                 <i class="bi bi-eye"></i> View
             </button>
         </td>
     `;
     
-    // Add click event listener to the button
+    // Add click event listener to the button with actual log data
     const viewBtn = row.querySelector('.view-log-btn');
     viewBtn.addEventListener('click', function() {
         showLogDetail(
-            this.dataset.id,
-            this.dataset.level,
-            this.dataset.time,
-            this.dataset.source,
-            this.dataset.message,
-            this.dataset.traceback
+            log.id,
+            log.level,
+            formattedDate,
+            log.source || '-',
+            log.message,
+            log.traceback || ''
         );
     });
     
