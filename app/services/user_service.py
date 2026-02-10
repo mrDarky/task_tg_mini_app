@@ -285,14 +285,15 @@ async def get_user_achievements(user_id: int) -> List[dict]:
         ORDER BY earned DESC, a.id ASC
     """
     rows = await db.fetch_all(query, (user_id,))
-    return [dict(row) for row in rows]
+    # Convert earned to boolean for better frontend compatibility
+    return [dict(row) | {'earned': bool(row['earned'])} for row in rows]
 
 
 async def ensure_default_achievements():
     """Ensure default achievements exist in the database"""
     # Check if achievements already exist
     check_query = "SELECT COUNT(*) as count FROM achievements"
-    result = await db.fetch_one(check_query, ())
+    result = await db.fetch_one(check_query)
     
     if result and result['count'] > 0:
         return  # Achievements already exist
