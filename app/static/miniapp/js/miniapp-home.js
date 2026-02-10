@@ -27,7 +27,7 @@ async function loadUserStats() {
         document.getElementById('completedTasks').textContent = completedCount;
         
         // Get referral count
-        const referralsResponse = await apiRequest(`/api/users/${currentUser.id}/referrals`);
+        const referralsResponse = await apiRequest(`/users/${currentUser.id}/referrals`);
         const referralCount = referralsResponse && Array.isArray(referralsResponse) ? referralsResponse.length : 0;
         document.getElementById('referralCount').textContent = referralCount;
     } catch (error) {
@@ -57,7 +57,7 @@ async function checkDailyBonus() {
     
     try {
         // Get the last bonus claim for this user
-        const bonusResponse = await apiRequest(`/api/users/${currentUser.id}/daily-bonus`);
+        const bonusResponse = await apiRequest(`/users/${currentUser.id}/daily-bonus`);
         
         if (bonusResponse) {
             const lastClaimed = bonusResponse.last_claimed;

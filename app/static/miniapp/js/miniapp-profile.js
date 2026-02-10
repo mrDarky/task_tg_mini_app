@@ -36,7 +36,7 @@ async function loadStatistics() {
         document.getElementById('completedTasks').textContent = completedCount;
         
         // Referral count
-        const referrals = await apiRequest(`/api/users/${currentUser.id}/referrals`);
+        const referrals = await apiRequest(`/users/${currentUser.id}/referrals`);
         const referralCount = referrals && Array.isArray(referrals) ? referrals.length : 0;
         document.getElementById('referralCount').textContent = referralCount;
         
