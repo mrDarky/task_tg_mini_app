@@ -40,8 +40,7 @@ async function loadStatistics() {
         const referralCount = referrals && Array.isArray(referrals) ? referrals.length : 0;
         document.getElementById('referralCount').textContent = referralCount;
         
-        // Achievements count (placeholder for now)
-        document.getElementById('achievementCount').textContent = '0';
+        // Achievements count will be set by loadAchievements()
         
         // Total earned (same as balance for now)
         document.getElementById('totalEarned').textContent = formatNumber(currentUser.stars);
@@ -92,19 +91,30 @@ async function loadStarHistory() {
 async function loadAchievements() {
     const container = document.getElementById('achievementBadges');
     
-    // Mock achievements for now
-    const achievements = [
-        { id: 1, icon: '🌟', name: 'First Task', earned: true },
-        { id: 2, icon: '🔥', name: '7 Day Streak', earned: false },
-        { id: 3, icon: '👥', name: '5 Referrals', earned: false },
-        { id: 4, icon: '💯', name: '100 Tasks', earned: false }
-    ];
-    
-    container.innerHTML = achievements.map(ach => `
-        <div class="achievement-badge ${ach.earned ? '' : 'locked'}" title="${ach.name}">
-            ${ach.icon}
-        </div>
-    `).join('');
+    try {
+        // Fetch achievements from API
+        const achievements = await apiRequest(`/api/users/${currentUser.id}/achievements`);
+        
+        if (achievements && achievements.length > 0) {
+            // Update achievement count
+            const earnedCount = achievements.filter(ach => ach.earned).length;
+            document.getElementById('achievementCount').textContent = earnedCount;
+            
+            // Display achievement badges
+            container.innerHTML = achievements.map(ach => `
+                <div class="achievement-badge ${ach.earned ? '' : 'locked'}" title="${ach.name}: ${ach.description}">
+                    ${ach.icon}
+                </div>
+            `).join('');
+        } else {
+            // No achievements available
+            container.innerHTML = '<p class="text-muted small">No achievements available yet.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading achievements:', error);
+        // Fallback to showing placeholder
+        container.innerHTML = '<p class="text-muted small">Unable to load achievements.</p>';
+    }
 }
 
 // Setup referral section

@@ -150,3 +150,14 @@ async def claim_daily_bonus(user_id: int):
         raise HTTPException(status_code=400, detail=result['message'])
     
     return result
+
+
+@router.get("/{user_id}/achievements", response_model=list)
+async def get_user_achievements(user_id: int):
+    """Get all achievements for a user"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    achievements = await user_service.get_user_achievements(user_id)
+    return achievements
