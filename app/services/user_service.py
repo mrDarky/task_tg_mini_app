@@ -265,6 +265,11 @@ async def claim_daily_bonus(user_id: int) -> dict:
 
 async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dict]:
     """Get all tasks for a user, optionally filtered by status"""
+    # Validate status parameter if provided
+    valid_statuses = ['pending', 'completed', 'failed', 'in_progress']
+    if status and status not in valid_statuses:
+        raise ValueError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+    
     query = """
         SELECT 
             ut.id,

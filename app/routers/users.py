@@ -14,8 +14,11 @@ async def get_user_tasks(user_id: int, status: Optional[str] = Query(None)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    tasks = await user_service.get_user_tasks(user_id, status)
-    return tasks
+    try:
+        tasks = await user_service.get_user_tasks(user_id, status)
+        return tasks
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/", response_model=dict)
