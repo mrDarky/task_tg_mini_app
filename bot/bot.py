@@ -17,6 +17,17 @@ bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
 
 
+def escape_markdown(text: str) -> str:
+    """Escape special characters for Markdown formatting"""
+    if not text:
+        return ''
+    # Escape special Markdown characters
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
 def generate_referral_code(telegram_id: int) -> str:
     """Generate unique referral code for a user"""
     hash_obj = hashlib.md5(f"{telegram_id}_{settings.bot_token[:10]}".encode())
@@ -93,9 +104,10 @@ async def cmd_start(message: types.Message):
         # Process referral if code was provided
         if referral_code:
             referrer_id, bonus = await process_referral(user_id, referral_code)
+            first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
             if referrer_id:
                 welcome_msg = (
-                    f"🎉 Welcome to Task App, {message.from_user.first_name}!\n\n"
+                    f"🎉 Welcome to Task App, {first_name_display}!\n\n"
                     f"You were referred by a friend who earned {bonus} ⭐!\n\n"
                     f"Complete tasks and earn stars ⭐\n"
                     f"Your current stars: {user['stars']}\n"
@@ -103,22 +115,24 @@ async def cmd_start(message: types.Message):
                 )
             else:
                 welcome_msg = (
-                    f"👋 Welcome to Task App, {message.from_user.first_name}!\n\n"
+                    f"👋 Welcome to Task App, {first_name_display}!\n\n"
                     f"Complete tasks and earn stars ⭐\n"
                     f"Your current stars: {user['stars']}\n"
                     f"Your referral code: `{user_referral_code}`"
                 )
         else:
+            first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
             welcome_msg = (
-                f"👋 Welcome to Task App, {message.from_user.first_name}!\n\n"
+                f"👋 Welcome to Task App, {first_name_display}!\n\n"
                 f"Complete tasks and earn stars ⭐\n"
                 f"Your current stars: {user['stars']}\n"
                 f"Your referral code: `{user_referral_code}`\n\n"
                 f"Share your code with friends to earn bonus stars!"
             )
     else:
+        first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
         welcome_msg = (
-            f"👋 Welcome back, {message.from_user.first_name}!\n\n"
+            f"👋 Welcome back, {first_name_display}!\n\n"
             f"Your current stars: {user['stars']} ⭐\n"
             f"Your referral code: `{user['referral_code']}`"
         )
@@ -223,9 +237,10 @@ async def cmd_profile(message: types.Message):
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
     
+    username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
     await message.answer(
         f"👤 *Your Profile*\n\n"
-        f"Username: @{user['username'] or 'N/A'}\n"
+        f"Username: @{username_display}\n"
         f"⭐ Stars: {user['stars']}\n"
         f"✅ Completed Tasks: {completed_tasks}\n"
         f"👥 Referrals: {referral_count}\n"
@@ -354,9 +369,12 @@ async def view_tasks(callback: types.CallbackQuery):
             'subscribe': '📢'
         }
         
+        title_display = escape_markdown(task['title']) if task['title'] else 'Task'
+        description_display = escape_markdown(task['description']) if task['description'] else 'Complete this task to earn stars!'
+        
         await callback.message.answer(
-            f"{task_type_emoji.get(task['type'], '📋')} {task['title']}\n\n"
-            f"{task['description'] or 'Complete this task to earn stars!'}\n\n"
+            f"{task_type_emoji.get(task['type'], '📋')} {title_display}\n\n"
+            f"{description_display}\n\n"
             f"Reward: {task['reward']} ⭐",
             reply_markup=keyboard
         )
@@ -492,9 +510,12 @@ async def show_category_tasks(callback: types.CallbackQuery):
         
         task_type_emoji = {'youtube': '🎥', 'tiktok': '🎵', 'subscribe': '📢'}
         
+        title_display = escape_markdown(task['title']) if task['title'] else 'Task'
+        description_display = escape_markdown(task['description']) if task['description'] else 'Complete this task to earn stars!'
+        
         await callback.message.answer(
-            f"{task_type_emoji.get(task['type'], '📋')} *{task['title']}*\n\n"
-            f"{task['description'] or 'Complete this task to earn stars!'}\n\n"
+            f"{task_type_emoji.get(task['type'], '📋')} *{title_display}*\n\n"
+            f"{description_display}\n\n"
             f"Reward: {task['reward']} ⭐",
             reply_markup=keyboard,
             parse_mode="Markdown"
@@ -528,12 +549,15 @@ async def show_task_detail(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="🔙 Back", callback_data="view_tasks")]
     ])
     
+    title_display = escape_markdown(task['title']) if task['title'] else 'Task'
+    description_display = escape_markdown(task['description']) if task['description'] else 'Complete the task and submit for verification.'
+    
     await callback.message.answer(
         f"📋 *Task Details*\n\n"
-        f"*Title:* {task['title']}\n"
+        f"*Title:* {title_display}\n"
         f"*Type:* {task['type'].title()}\n"
         f"*Reward:* {task['reward']} ⭐\n\n"
-        f"*Instructions:*\n{task['description'] or 'Complete the task and submit for verification.'}\n\n"
+        f"*Instructions:*\n{description_display}\n\n"
         f"*Steps:*\n"
         f"1. Click 'Open Link' to access the task\n"
         f"2. Complete the required action\n"
@@ -684,9 +708,10 @@ async def show_profile(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
     
+    username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
     await callback.message.answer(
         f"👤 *Your Profile*\n\n"
-        f"Username: @{user['username'] or 'N/A'}\n"
+        f"Username: @{username_display}\n"
         f"⭐ Stars: {user['stars']}\n"
         f"✅ Completed: {completed_tasks}\n"
         f"👥 Referrals: {referral_count}\n"
