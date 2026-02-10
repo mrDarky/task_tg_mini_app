@@ -111,11 +111,30 @@ function createLogRow(log) {
         <td>${log.source || '-'}</td>
         <td>${escapeHtml(truncatedMessage)}</td>
         <td>
-            <button class="btn btn-sm btn-outline-primary" onclick="showLogDetail(${log.id}, '${log.level}', '${formattedDate}', '${escapeHtml(log.source || '-')}', \`${escapeHtml(log.message)}\`, \`${escapeHtml(log.traceback || '')}\`)">
+            <button class="btn btn-sm btn-outline-primary view-log-btn" 
+                    data-id="${log.id}"
+                    data-level="${log.level}" 
+                    data-time="${formattedDate}" 
+                    data-source="${log.source || '-'}" 
+                    data-message="${escapeHtml(log.message)}" 
+                    data-traceback="${escapeHtml(log.traceback || '')}">
                 <i class="bi bi-eye"></i> View
             </button>
         </td>
     `;
+    
+    // Add click event listener to the button
+    const viewBtn = row.querySelector('.view-log-btn');
+    viewBtn.addEventListener('click', function() {
+        showLogDetail(
+            this.dataset.id,
+            this.dataset.level,
+            this.dataset.time,
+            this.dataset.source,
+            this.dataset.message,
+            this.dataset.traceback
+        );
+    });
     
     return row;
 }
@@ -147,9 +166,25 @@ function showLogDetail(id, level, time, source, message, traceback) {
         tracebackContainer.style.display = 'none';
     }
     
-    // Show modal
-    const modal = new bootstrap.Modal(document.getElementById('logDetailModal'));
-    modal.show();
+    // Show modal - use data-bs-toggle attribute approach or manual show
+    const modal = document.getElementById('logDetailModal');
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const bsModal = new bootstrap.Modal(modal);
+        bsModal.show();
+    } else {
+        // Fallback: manually show modal by adding Bootstrap classes
+        modal.classList.add('show');
+        modal.style.display = 'block';
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('role', 'dialog');
+        
+        // Add backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'modal-backdrop fade show';
+        backdrop.id = 'logModalBackdrop';
+        document.body.appendChild(backdrop);
+        document.body.classList.add('modal-open');
+    }
 }
 
 // Escape HTML to prevent XSS
@@ -191,10 +226,29 @@ document.addEventListener('DOMContentLoaded', function() {
         loadErrorLogs(true);
     });
     
-    // Tab change events
-    document.getElementById('error-logs-tab').addEventListener('shown.bs.tab', function() {
+    // Tab change events - use click instead of Bootstrap event
+    document.getElementById('error-logs-tab').addEventListener('click', function() {
         if (errorLogsOffset === 0) {
             loadErrorLogs();
         }
+    });
+    
+    // Modal close handlers
+    const modal = document.getElementById('logDetailModal');
+    const closeButtons = modal.querySelectorAll('[data-bs-dismiss="modal"], .btn-close');
+    closeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            modal.removeAttribute('aria-modal');
+            modal.removeAttribute('role');
+            
+            // Remove backdrop if exists
+            const backdrop = document.getElementById('logModalBackdrop');
+            if (backdrop) {
+                backdrop.remove();
+            }
+            document.body.classList.remove('modal-open');
+        });
     });
 });
