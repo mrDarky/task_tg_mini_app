@@ -4,10 +4,12 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
-from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages
+from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs
 from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
+from app.services.logger_service import log_error
 from pydantic import BaseModel
 from config.settings import settings as config_settings
+import traceback
 
 
 @asynccontextmanager
@@ -34,6 +36,27 @@ async def authentication_exception_handler(request: Request, exc: Authentication
     return RedirectResponse(url="/admin/login", status_code=303)
 
 
+# Global exception handler for all unhandled exceptions
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # Log the error
+    error_message = f"Unhandled exception in {request.method} {request.url.path}"
+    await log_error(error_message, error=exc, source=f"{request.method} {request.url.path}")
+    
+    # Return appropriate response
+    if request.url.path.startswith("/api/"):
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error. The error has been logged."}
+        )
+    else:
+        # For non-API routes, return a generic error page or redirect
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Internal server error"}
+        )
+
+
 # Pydantic models for request validation
 class PasswordChangeRequest(BaseModel):
     current_password: str
@@ -51,6 +74,7 @@ app.include_router(tickets.router)
 app.include_router(moderation.router)
 app.include_router(reports.router)
 app.include_router(languages.router)
+app.include_router(logs.router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -173,6 +197,11 @@ async def admin_moderation(request: Request, username: str = Depends(require_aut
 @app.get("/admin/languages", response_class=HTMLResponse)
 async def admin_languages(request: Request, username: str = Depends(require_auth)):
     return templates.TemplateResponse("languages.html", {"request": request, "username": username})
+
+
+@app.get("/admin/logs", response_class=HTMLResponse)
+async def admin_logs(request: Request, username: str = Depends(require_auth)):
+    return templates.TemplateResponse("logs.html", {"request": request, "username": username})
 
 
 @app.get("/admin/translations/{language_id}", response_class=HTMLResponse)

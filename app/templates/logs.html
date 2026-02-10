@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Logs - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-file-text"></i> System Logs</h2>
+</div>
+
+<!-- Tabs for All Logs and Error Logs -->
+<ul class="nav nav-tabs mb-3" id="logsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-logs-tab" data-bs-toggle="tab" data-bs-target="#all-logs" type="button" role="tab">
+            <i class="bi bi-list"></i> All Logs
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="error-logs-tab" data-bs-toggle="tab" data-bs-target="#error-logs" type="button" role="tab">
+            <i class="bi bi-exclamation-triangle"></i> Error Logs
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Content -->
+<div class="tab-content" id="logsTabContent">
+    <!-- All Logs Tab -->
+    <div class="tab-pane fade show active" id="all-logs" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <span id="allLogsCount" class="badge bg-primary">0 total logs</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Level</th>
+                                <th>Source</th>
+                                <th>Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allLogsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
+                    <button id="allLogsLoadMore" class="btn btn-primary" style="display: none;">
+                        <i class="bi bi-arrow-down-circle"></i> Load More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Logs Tab -->
+    <div class="tab-pane fade" id="error-logs" role="tabpanel">
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <span id="errorLogsCount" class="badge bg-danger">0 error logs</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Level</th>
+                                <th>Source</th>
+                                <th>Message</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="errorLogsTableBody">
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="spinner-border text-danger" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-center mt-3">
+                    <button id="errorLogsLoadMore" class="btn btn-danger" style="display: none;">
+                        <i class="bi bi-arrow-down-circle"></i> Load More
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Log Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <strong>Level:</strong> <span id="detailLevel" class="badge"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Time:</strong> <span id="detailTime"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Source:</strong> <span id="detailSource"></span>
+                </div>
+                <div class="mb-3">
+                    <strong>Message:</strong>
+                    <div id="detailMessage" class="p-2 bg-light rounded mt-2"></div>
+                </div>
+                <div id="detailTracebackContainer" style="display: none;">
+                    <strong>Traceback:</strong>
+                    <pre id="detailTraceback" class="p-2 bg-dark text-light rounded mt-2" style="max-height: 400px; overflow-y: auto;"></pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/logs.js"></script>
+{% endblock %}
