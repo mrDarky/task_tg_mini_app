@@ -263,6 +263,42 @@ async def claim_daily_bonus(user_id: int) -> dict:
     }
 
 
+async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dict]:
+    """Get all tasks for a user, optionally filtered by status"""
+    # Validate status parameter if provided
+    valid_statuses = ['pending', 'completed', 'failed', 'in_progress']
+    if status and status not in valid_statuses:
+        raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}")
+    
+    query = """
+        SELECT 
+            ut.id,
+            ut.user_id,
+            ut.task_id,
+            ut.status,
+            ut.completed_at,
+            ut.created_at,
+            t.title,
+            t.description,
+            t.type,
+            t.url,
+            t.reward
+        FROM user_tasks ut
+        JOIN tasks t ON ut.task_id = t.id
+        WHERE ut.user_id = ?
+    """
+    params = [user_id]
+    
+    if status:
+        query += " AND ut.status = ?"
+        params.append(status)
+    
+    query += " ORDER BY ut.created_at DESC"
+    
+    rows = await db.fetch_all(query, params)
+    return [dict(row) for row in rows]
+
+
 async def get_user_achievements(user_id: int) -> List[dict]:
     """Get all achievements for a user with their earned status"""
     # First, ensure we have some default achievements
