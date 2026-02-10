@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.get("/{user_id}/tasks", response_model=list)
-async def get_user_tasks(user_id: int, status: Optional[str] = Query(None)):
+async def fetch_user_tasks(user_id: int, status: Optional[str] = Query(None)):
     """Get all tasks for a user, optionally filtered by status"""
     user = await user_service.get_user(user_id)
     if not user:

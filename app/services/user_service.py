@@ -268,7 +268,7 @@ async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dic
     # Validate status parameter if provided
     valid_statuses = ['pending', 'completed', 'failed', 'in_progress']
     if status and status not in valid_statuses:
-        raise ValueError(f"Invalid status. Must be one of: {', '.join(valid_statuses)}")
+        raise ValueError(f"Invalid status '{status}'. Must be one of: {', '.join(valid_statuses)}")
     
     query = """
         SELECT 
