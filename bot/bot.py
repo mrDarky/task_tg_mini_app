@@ -20,7 +20,7 @@ dp = Dispatcher()
 def escape_markdown(text: str) -> str:
     """Escape special characters for Markdown formatting"""
     if not text:
-        return text
+        return ''
     # Escape special Markdown characters
     special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
     for char in special_chars:
