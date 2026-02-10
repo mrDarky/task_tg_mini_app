@@ -8,6 +8,25 @@ if (tg) {
 // API Base URL
 const API_BASE = '/api';
 
+// Bot info (will be loaded on initialization)
+window.botUsername = 'TaskAppBot'; // Default value
+
+// Load bot info
+async function loadBotInfo() {
+    try {
+        const response = await fetch('/api/settings/public/bot-info');
+        if (response.ok) {
+            const data = await response.json();
+            window.botUsername = data.bot_username || 'TaskAppBot';
+        }
+    } catch (error) {
+        console.warn('Failed to load bot info:', error);
+    }
+}
+
+// Initialize bot info
+loadBotInfo();
+
 // Get Telegram user data
 function getTelegramUser() {
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
