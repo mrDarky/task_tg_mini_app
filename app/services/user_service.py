@@ -261,3 +261,59 @@ async def claim_daily_bonus(user_id: int) -> dict:
         'streak_count': streak_count,
         'total_stars': (await get_user(user_id))['stars']
     }
+
+
+async def get_user_achievements(user_id: int) -> List[dict]:
+    """Get all achievements for a user with their earned status"""
+    # First, ensure we have some default achievements
+    await ensure_default_achievements()
+    
+    # Get all achievements with user's earned status
+    query = """
+        SELECT 
+            a.id,
+            a.name,
+            a.description,
+            a.icon,
+            a.requirement_type,
+            a.requirement_value,
+            a.reward_stars,
+            CASE WHEN ua.id IS NOT NULL THEN 1 ELSE 0 END as earned,
+            ua.earned_at
+        FROM achievements a
+        LEFT JOIN user_achievements ua ON a.id = ua.achievement_id AND ua.user_id = ?
+        ORDER BY earned DESC, a.id ASC
+    """
+    rows = await db.fetch_all(query, (user_id,))
+    # Convert earned to boolean for better frontend compatibility
+    return [dict(row) | {'earned': bool(row['earned'])} for row in rows]
+
+
+async def ensure_default_achievements():
+    """Ensure default achievements exist in the database"""
+    # Check if achievements already exist
+    check_query = "SELECT COUNT(*) as count FROM achievements"
+    result = await db.fetch_one(check_query)
+    
+    if result and result['count'] > 0:
+        return  # Achievements already exist
+    
+    # Insert default achievements
+    default_achievements = [
+        ("First Steps", "Complete your first task", "🌟", "tasks_completed", 1, 10),
+        ("Task Master", "Complete 10 tasks", "🏆", "tasks_completed", 10, 50),
+        ("Task Legend", "Complete 50 tasks", "👑", "tasks_completed", 50, 200),
+        ("Social Butterfly", "Refer 5 friends", "👥", "referrals", 5, 100),
+        ("Influencer", "Refer 20 friends", "📢", "referrals", 20, 500),
+        ("Star Collector", "Earn 100 stars", "⭐", "stars_earned", 100, 0),
+        ("Rich", "Earn 500 stars", "💎", "stars_earned", 500, 0),
+        ("Consistent", "Claim daily bonus 7 days in a row", "🔥", "daily_streak", 7, 50),
+    ]
+    
+    query = """
+        INSERT INTO achievements (name, description, icon, requirement_type, requirement_value, reward_stars)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """
+    
+    for achievement in default_achievements:
+        await db.execute(query, achievement)
