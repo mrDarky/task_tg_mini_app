@@ -17,6 +17,17 @@ bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
 
 
+def escape_markdown(text: str) -> str:
+    """Escape special characters for Markdown formatting"""
+    if not text:
+        return text
+    # Escape special Markdown characters
+    special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    return text
+
+
 def generate_referral_code(telegram_id: int) -> str:
     """Generate unique referral code for a user"""
     hash_obj = hashlib.md5(f"{telegram_id}_{settings.bot_token[:10]}".encode())
@@ -223,9 +234,10 @@ async def cmd_profile(message: types.Message):
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
     
+    username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
     await message.answer(
         f"👤 *Your Profile*\n\n"
-        f"Username: @{user['username'] or 'N/A'}\n"
+        f"Username: @{username_display}\n"
         f"⭐ Stars: {user['stars']}\n"
         f"✅ Completed Tasks: {completed_tasks}\n"
         f"👥 Referrals: {referral_count}\n"
@@ -684,9 +696,10 @@ async def show_profile(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
     
+    username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
     await callback.message.answer(
         f"👤 *Your Profile*\n\n"
-        f"Username: @{user['username'] or 'N/A'}\n"
+        f"Username: @{username_display}\n"
         f"⭐ Stars: {user['stars']}\n"
         f"✅ Completed: {completed_tasks}\n"
         f"👥 Referrals: {referral_count}\n"
