@@ -12,6 +12,7 @@ async def list_tickets(
     status: Optional[str] = None,
     priority: Optional[str] = None,
     assigned_to: Optional[int] = None,
+    user_id: Optional[int] = None,
     page: int = 1,
     per_page: int = 20
 ):
@@ -28,6 +29,9 @@ async def list_tickets(
     if assigned_to:
         conditions.append("assigned_to = ?")
         params.append(assigned_to)
+    if user_id:
+        conditions.append("user_id = ?")
+        params.append(user_id)
     
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     

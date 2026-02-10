@@ -6,11 +6,11 @@ from datetime import datetime
 
 async def create_user(user: UserCreate) -> int:
     query = """
-        INSERT INTO users (telegram_id, username, stars, status, role)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO users (telegram_id, username, referral_code, stars, status, role)
+        VALUES (?, ?, ?, ?, ?, ?)
     """
     cursor = await db.execute(query, (
-        user.telegram_id, user.username, user.stars, user.status, user.role
+        user.telegram_id, user.username, user.referral_code, user.stars, user.status, user.role
     ))
     return cursor.lastrowid
 
@@ -130,3 +130,18 @@ async def bulk_update_users(user_ids: List[int], update_data: dict) -> bool:
     query = f"UPDATE users SET {', '.join(fields)}, updated_at = CURRENT_TIMESTAMP WHERE id IN ({placeholders})"
     await db.execute(query, tuple(values))
     return True
+
+
+async def ensure_referral_code(user_id: int, telegram_id: int) -> str:
+    """Generate and assign a referral code if user doesn't have one"""
+    import hashlib
+    
+    # Generate referral code
+    hash_obj = hashlib.md5(f"{telegram_id}_{datetime.now().timestamp()}".encode())
+    referral_code = hash_obj.hexdigest()[:8].upper()
+    
+    # Update user with referral code
+    query = "UPDATE users SET referral_code = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    await db.execute(query, (referral_code, user_id))
+    
+    return referral_code
