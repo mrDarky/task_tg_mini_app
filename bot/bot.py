@@ -85,6 +85,7 @@ async def cmd_start(message: types.Message):
     # Get or create bot info to get username
     bot_info = await bot.get_me()
     bot_username = bot_info.username
+    bot_username_escaped = escape_markdown(bot_username)
     
     referral_code = None
     # Extract referral code from start command
@@ -111,8 +112,8 @@ async def cmd_start(message: types.Message):
         user_id = await user_service.create_user(user_data)
         user = await user_service.get_user(user_id)
         
-        # Format referral link
-        referral_link = f"https://t.me/{bot_username}?start={user_referral_code}"
+        # Format referral link (escape bot username for markdown)
+        referral_link = f"https://t.me/{bot_username_escaped}?start={user_referral_code}"
         
         # Process referral if code was provided
         if referral_code:
@@ -140,7 +141,7 @@ async def cmd_start(message: types.Message):
             )
     else:
         first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
-        referral_link = f"https://t.me/{bot_username}?start={user.get('referral_code', '')}"
+        referral_link = f"https://t.me/{bot_username_escaped}?start={user.get('referral_code', '')}"
         welcome_msg = t('bot_welcome_back', user_lang,
             name=first_name_display,
             stars=user['stars'],
@@ -767,7 +768,9 @@ async def show_referral_stats(callback: types.CallbackQuery):
         for ref in referrals[:5]
     ]) if referrals else "No referrals yet"
     
-    share_url = f"https://t.me/{settings.bot_username}?start={user['referral_code']}"
+    # Escape bot username for markdown
+    bot_username_escaped = escape_markdown(settings.bot_username)
+    share_url = f"https://t.me/{bot_username_escaped}?start={user['referral_code']}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Share Referral Link", url=share_url)],
@@ -990,7 +993,9 @@ async def help_stars(callback: types.CallbackQuery):
 async def help_referrals(callback: types.CallbackQuery):
     user = await user_service.get_user_by_telegram_id(callback.from_user.id)
     referral_code = user['referral_code'] if user else "YOUR_CODE"
-    share_url = f"https://t.me/{settings.bot_username}?start={referral_code}"
+    # Escape bot username for markdown
+    bot_username_escaped = escape_markdown(settings.bot_username)
+    share_url = f"https://t.me/{bot_username_escaped}?start={referral_code}"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Share Your Link", url=share_url)],
