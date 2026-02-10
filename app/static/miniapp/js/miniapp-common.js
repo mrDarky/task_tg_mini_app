@@ -94,7 +94,13 @@ function showLoading(element) {
 // Format date
 function formatDate(dateString) {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    const lang = window.i18n?.getCurrentLanguage() || 'en';
+    const locales = {
+        'en': 'en-US',
+        'ru': 'ru-RU',
+        'es': 'es-ES'
+    };
+    return date.toLocaleDateString(locales[lang] || 'en-US', {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
@@ -174,9 +180,9 @@ function initTheme() {
 function copyToClipboard(text) {
     if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(() => {
-            showSuccess('Copied to clipboard!');
+            showSuccess(window.i18n?.t('copied_to_clipboard') || 'Copied to clipboard!');
         }).catch(() => {
-            showError('Failed to copy');
+            showError(window.i18n?.t('failed_to_copy') || 'Failed to copy');
         });
     } else {
         // Fallback for older browsers
@@ -186,9 +192,9 @@ function copyToClipboard(text) {
         textArea.select();
         try {
             document.execCommand('copy');
-            showSuccess('Copied to clipboard!');
+            showSuccess(window.i18n?.t('copied_to_clipboard') || 'Copied to clipboard!');
         } catch (err) {
-            showError('Failed to copy');
+            showError(window.i18n?.t('failed_to_copy') || 'Failed to copy');
         }
         document.body.removeChild(textArea);
     }

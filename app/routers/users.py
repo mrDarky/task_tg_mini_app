@@ -98,3 +98,19 @@ async def bulk_update_users(user_ids: List[int], update_data: dict):
     
     await user_service.bulk_update_users(user_ids, update_data)
     return {"message": f"Bulk update applied to {len(user_ids)} users"}
+
+
+@router.post("/{user_id}/generate-referral", response_model=dict)
+async def generate_referral_code(user_id: int):
+    """Generate a referral code for a user who doesn't have one"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # If user already has a referral code, return it
+    if user.get('referral_code'):
+        return {"referral_code": user['referral_code'], "message": "Referral code already exists"}
+    
+    # Generate new referral code
+    referral_code = await user_service.ensure_referral_code(user_id, user['telegram_id'])
+    return {"referral_code": referral_code, "message": "Referral code generated successfully"}

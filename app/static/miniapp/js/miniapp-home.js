@@ -57,7 +57,7 @@ async function claimDailyBonus() {
     
     const button = document.getElementById('claimBonusBtn');
     button.disabled = true;
-    button.textContent = 'Claiming...';
+    button.textContent = window.i18n?.t('claiming') || 'Claiming...';
     
     try {
         // Make API call to claim bonus
@@ -66,14 +66,14 @@ async function claimDailyBonus() {
         });
         
         if (response) {
-            window.miniApp.showSuccess('Daily bonus claimed! +10 ⭐');
+            window.miniApp.showSuccess(window.i18n?.t('bonus_claimed') || 'Daily bonus claimed! +10 ⭐');
             await loadUserData();
         }
     } catch (error) {
-        window.miniApp.showError('Failed to claim bonus');
+        window.miniApp.showError(window.i18n?.t('failed_to_claim') || 'Failed to claim bonus');
     } finally {
         button.disabled = false;
-        button.textContent = 'Claim';
+        button.textContent = window.i18n?.t('claim_btn') || 'Claim';
     }
 }
 

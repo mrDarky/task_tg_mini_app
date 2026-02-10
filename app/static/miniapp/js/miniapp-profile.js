@@ -97,10 +97,27 @@ async function loadAchievements() {
 }
 
 // Setup referral section
-function setupReferralSection() {
-    if (!currentUser || !currentUser.referral_code) return;
+async function setupReferralSection() {
+    if (!currentUser) return;
     
-    const referralCode = currentUser.referral_code;
+    let referralCode = currentUser.referral_code;
+    
+    // If user doesn't have a referral code, generate one
+    if (!referralCode) {
+        try {
+            const response = await apiRequest(`/users/${currentUser.id}/generate-referral`, {
+                method: 'POST'
+            });
+            if (response && response.referral_code) {
+                referralCode = response.referral_code;
+                currentUser.referral_code = referralCode;
+            }
+        } catch (error) {
+            console.error('Failed to generate referral code:', error);
+            return;
+        }
+    }
+    
     const referralUrl = `https://t.me/${window.botUsername || 'TaskAppBot'}?start=${referralCode}`;
     
     document.getElementById('referralCode').value = referralCode;
