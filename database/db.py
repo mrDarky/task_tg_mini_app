@@ -338,6 +338,18 @@ class Database:
             )
         """)
         
+        # Logs table for application logging
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                level TEXT NOT NULL,
+                message TEXT NOT NULL,
+                traceback TEXT,
+                source TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         await self.connection.commit()
         
         # Initialize default languages if not exist
