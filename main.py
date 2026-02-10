@@ -4,9 +4,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
-from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs
+from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs, activity
 from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
 from app.services.logger_service import log_error
+from app.middleware import ActivityLoggingMiddleware
 from pydantic import BaseModel
 from config.settings import settings as config_settings
 import traceback
@@ -25,6 +26,9 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Add activity logging middleware
+app.add_middleware(ActivityLoggingMiddleware)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
@@ -75,6 +79,7 @@ app.include_router(moderation.router)
 app.include_router(reports.router)
 app.include_router(languages.router)
 app.include_router(logs.router)
+app.include_router(activity.router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -202,6 +207,11 @@ async def admin_languages(request: Request, username: str = Depends(require_auth
 @app.get("/admin/logs", response_class=HTMLResponse)
 async def admin_logs(request: Request, username: str = Depends(require_auth)):
     return templates.TemplateResponse("logs.html", {"request": request, "username": username})
+
+
+@app.get("/admin/activity", response_class=HTMLResponse)
+async def admin_activity(request: Request, username: str = Depends(require_auth)):
+    return templates.TemplateResponse("activity_monitor.html", {"request": request, "username": username})
 
 
 @app.get("/admin/translations/{language_id}", response_class=HTMLResponse)

@@ -350,6 +350,91 @@ class Database:
             )
         """)
         
+        # Activity logs table for tracking all user actions
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS activity_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                ip_address TEXT NOT NULL,
+                endpoint TEXT NOT NULL,
+                method TEXT NOT NULL,
+                status_code INTEGER,
+                user_agent TEXT,
+                action_type TEXT,
+                details TEXT,
+                is_suspicious BOOLEAN DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
+            )
+        """)
+        
+        # Create indexes for activity_logs for better query performance
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_activity_logs_user_id 
+            ON activity_logs(user_id)
+        """)
+        
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_activity_logs_ip_address 
+            ON activity_logs(ip_address)
+        """)
+        
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_activity_logs_created_at 
+            ON activity_logs(created_at DESC)
+        """)
+        
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_activity_logs_is_suspicious 
+            ON activity_logs(is_suspicious)
+        """)
+        
+        # IP addresses table for managing IPs and their relationship to users
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS ip_addresses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ip_address TEXT UNIQUE NOT NULL,
+                is_blocked BOOLEAN DEFAULT 0,
+                block_reason TEXT,
+                blocked_at TIMESTAMP,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                request_count INTEGER DEFAULT 0,
+                suspicious_count INTEGER DEFAULT 0
+            )
+        """)
+        
+        # Create index for IP blocking checks
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_ip_addresses_blocked 
+            ON ip_addresses(ip_address, is_blocked)
+        """)
+        
+        # User-IP mapping table (since one user can have multiple IPs)
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS user_ip_mappings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                ip_address TEXT NOT NULL,
+                first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                request_count INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+                UNIQUE(user_id, ip_address)
+            )
+        """)
+        
+        # Create indexes for user-IP mappings
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_ip_mappings_user_id 
+            ON user_ip_mappings(user_id)
+        """)
+        
+        await self.connection.execute("""
+            CREATE INDEX IF NOT EXISTS idx_user_ip_mappings_ip_address 
+            ON user_ip_mappings(ip_address)
+        """)
+        
         await self.connection.commit()
         
         # Initialize default languages if not exist
