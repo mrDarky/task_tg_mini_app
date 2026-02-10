@@ -1,5 +1,6 @@
 // Translation system for mini-app
-const translations = {
+// Translations can be loaded from API or use hardcoded fallback
+let translations = {
     en: {
         // Navigation
         nav_home: 'Home',
@@ -330,8 +331,29 @@ function createLanguageSelector() {
     return html;
 }
 
+// Load translations from API
+async function loadTranslationsFromAPI(languageCode) {
+    try {
+        const response = await fetch(`/api/languages/json/${languageCode}`);
+        if (response.ok) {
+            const data = await response.json();
+            if (data && data.translations) {
+                translations[languageCode] = data.translations;
+                return true;
+            }
+        }
+    } catch (error) {
+        console.warn(`Failed to load translations for ${languageCode} from API, using fallback`, error);
+    }
+    return false;
+}
+
 // Initialize translation system
-function initTranslations() {
+async function initTranslations() {
+    // Try to load current language from API
+    const currentLang = getCurrentLanguage();
+    await loadTranslationsFromAPI(currentLang);
+    
     // Translate the page
     translatePage();
     
@@ -345,11 +367,15 @@ function initTranslations() {
         
         // Add event listeners to language links
         document.querySelectorAll('[data-lang]').forEach(link => {
-            link.addEventListener('click', (e) => {
+            link.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const newLang = e.target.getAttribute('data-lang');
-                setCurrentLanguage(newLang);
-                window.location.reload();
+                if (setCurrentLanguage(newLang)) {
+                    // Try to load new language from API
+                    await loadTranslationsFromAPI(newLang);
+                    // Reload the page to apply new language
+                    window.location.reload();
+                }
             });
         });
     }
@@ -362,12 +388,15 @@ window.i18n = {
     getCurrentLanguage,
     setCurrentLanguage,
     createLanguageSelector,
-    initTranslations
+    initTranslations,
+    loadTranslationsFromAPI
 };
 
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initTranslations);
+    document.addEventListener('DOMContentLoaded', () => {
+        initTranslations();
+    });
 } else {
     initTranslations();
 }

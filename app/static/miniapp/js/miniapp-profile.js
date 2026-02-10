@@ -29,18 +29,29 @@ async function loadProfileData() {
 async function loadStatistics() {
     if (!currentUser) return;
     
-    // Completed tasks
-    const completedTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
-    document.getElementById('completedTasks').textContent = completedTasks ? completedTasks.length : 0;
-    
-    // Referral count (mock for now)
-    document.getElementById('referralCount').textContent = '0';
-    
-    // Achievements count (mock for now)
-    document.getElementById('achievementCount').textContent = '0';
-    
-    // Total earned (same as balance for now)
-    document.getElementById('totalEarned').textContent = formatNumber(currentUser.stars);
+    try {
+        // Completed tasks
+        const completedTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
+        const completedCount = completedTasks && Array.isArray(completedTasks) ? completedTasks.length : 0;
+        document.getElementById('completedTasks').textContent = completedCount;
+        
+        // Referral count
+        const referrals = await apiRequest(`/api/users/${currentUser.id}/referrals`);
+        const referralCount = referrals && Array.isArray(referrals) ? referrals.length : 0;
+        document.getElementById('referralCount').textContent = referralCount;
+        
+        // Achievements count (placeholder for now)
+        document.getElementById('achievementCount').textContent = '0';
+        
+        // Total earned (same as balance for now)
+        document.getElementById('totalEarned').textContent = formatNumber(currentUser.stars);
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        document.getElementById('completedTasks').textContent = '0';
+        document.getElementById('referralCount').textContent = '0';
+        document.getElementById('achievementCount').textContent = '0';
+        document.getElementById('totalEarned').textContent = formatNumber(currentUser.stars || 0);
+    }
 }
 
 // Load star history and draw simple chart
@@ -105,7 +116,7 @@ async function setupReferralSection() {
     // If user doesn't have a referral code, generate one
     if (!referralCode) {
         try {
-            const response = await apiRequest(`/users/${currentUser.id}/generate-referral`, {
+            const response = await apiRequest(`/api/users/${currentUser.id}/generate-referral`, {
                 method: 'POST'
             });
             if (response && response.referral_code) {
@@ -118,9 +129,17 @@ async function setupReferralSection() {
         }
     }
     
-    const referralUrl = `https://t.me/${window.botUsername || 'TaskAppBot'}?start=${referralCode}`;
+    // Format the referral URL as: https://t.me/botname?start=CODE
+    const botUsername = window.botUsername || 'TaskAppBot';
+    const referralUrl = `https://t.me/${botUsername}?start=${referralCode}`;
     
     document.getElementById('referralCode').value = referralCode;
+    
+    // Also display the full link
+    const referralLinkDisplay = document.getElementById('referralLinkDisplay');
+    if (referralLinkDisplay) {
+        referralLinkDisplay.textContent = referralUrl;
+    }
     
     // Copy code button
     document.getElementById('copyCodeBtn').addEventListener('click', () => {
@@ -129,7 +148,8 @@ async function setupReferralSection() {
     
     // Share button
     document.getElementById('shareBtn').addEventListener('click', () => {
-        shareLink(referralUrl, 'Join Task App and earn stars by completing simple tasks! Use my referral code: ' + referralCode);
+        const shareText = window.i18n?.t('invite_friends') || `Join Task App and earn stars by completing simple tasks! Use my referral code: ${referralCode}`;
+        shareLink(referralUrl, shareText);
     });
 }
 

@@ -20,12 +20,21 @@ async function loadUserData() {
 async function loadUserStats() {
     if (!currentUser) return;
     
-    // Get completed tasks count
-    const completedTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
-    document.getElementById('completedTasks').textContent = completedTasks ? completedTasks.length : 0;
-    
-    // Get referral count (mock data for now)
-    document.getElementById('referralCount').textContent = '0';
+    try {
+        // Get completed tasks count
+        const completedTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
+        const completedCount = completedTasks && Array.isArray(completedTasks) ? completedTasks.length : 0;
+        document.getElementById('completedTasks').textContent = completedCount;
+        
+        // Get referral count
+        const referralsResponse = await apiRequest(`/api/users/${currentUser.id}/referrals`);
+        const referralCount = referralsResponse && Array.isArray(referralsResponse) ? referralsResponse.length : 0;
+        document.getElementById('referralCount').textContent = referralCount;
+    } catch (error) {
+        console.error('Error loading user stats:', error);
+        document.getElementById('completedTasks').textContent = '0';
+        document.getElementById('referralCount').textContent = '0';
+    }
 }
 
 // Load quick tasks
@@ -44,11 +53,41 @@ async function loadQuickTasks() {
 
 // Check daily bonus status
 async function checkDailyBonus() {
-    // This would check the last bonus claim time
-    // For now, show as available
-    document.getElementById('bonusStatus').textContent = 'Ready to claim!';
-    document.getElementById('streakText').textContent = 'Streak: 1 day';
-    document.getElementById('streakProgress').style.width = '14%'; // 1/7 days
+    if (!currentUser) return;
+    
+    try {
+        // Get the last bonus claim for this user
+        const bonusResponse = await apiRequest(`/api/users/${currentUser.id}/daily-bonus`);
+        
+        if (bonusResponse) {
+            const lastClaimed = bonusResponse.last_claimed;
+            const streakCount = bonusResponse.streak_count || 0;
+            const canClaim = bonusResponse.can_claim || false;
+            
+            if (canClaim) {
+                document.getElementById('bonusStatus').textContent = window.i18n?.t('claim_bonus') || 'Ready to claim!';
+                document.getElementById('claimBonusBtn').disabled = false;
+            } else {
+                document.getElementById('bonusStatus').textContent = 'Already claimed today';
+                document.getElementById('claimBonusBtn').disabled = true;
+            }
+            
+            document.getElementById('streakText').textContent = `${window.i18n?.t('streak') || 'Streak'}: ${streakCount} ${window.i18n?.t('days') || 'days'}`;
+            const progressPercent = Math.min((streakCount / 7) * 100, 100);
+            document.getElementById('streakProgress').style.width = `${progressPercent}%`;
+        } else {
+            // First time user, bonus is available
+            document.getElementById('bonusStatus').textContent = window.i18n?.t('claim_bonus') || 'Ready to claim!';
+            document.getElementById('streakText').textContent = `${window.i18n?.t('streak') || 'Streak'}: 0 ${window.i18n?.t('days') || 'days'}`;
+            document.getElementById('streakProgress').style.width = '0%';
+        }
+    } catch (error) {
+        console.error('Error checking daily bonus:', error);
+        // Default to showing as available
+        document.getElementById('bonusStatus').textContent = window.i18n?.t('claim_bonus') || 'Ready to claim!';
+        document.getElementById('streakText').textContent = `${window.i18n?.t('streak') || 'Streak'}: 0 ${window.i18n?.t('days') || 'days'}`;
+        document.getElementById('streakProgress').style.width = '0%';
+    }
 }
 
 // Claim daily bonus

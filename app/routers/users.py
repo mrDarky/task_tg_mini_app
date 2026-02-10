@@ -114,3 +114,39 @@ async def generate_referral_code(user_id: int):
     # Generate new referral code
     referral_code = await user_service.ensure_referral_code(user_id, user['telegram_id'])
     return {"referral_code": referral_code, "message": "Referral code generated successfully"}
+
+
+@router.get("/{user_id}/referrals", response_model=list)
+async def get_user_referrals(user_id: int):
+    """Get all referrals for a user"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    referrals = await user_service.get_user_referrals(user_id)
+    return referrals
+
+
+@router.get("/{user_id}/daily-bonus", response_model=dict)
+async def get_daily_bonus_status(user_id: int):
+    """Get daily bonus status for a user"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    bonus_status = await user_service.get_daily_bonus_status(user_id)
+    return bonus_status
+
+
+@router.post("/{user_id}/claim-bonus", response_model=dict)
+async def claim_daily_bonus(user_id: int):
+    """Claim daily bonus for a user"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    result = await user_service.claim_daily_bonus(user_id)
+    if not result['success']:
+        raise HTTPException(status_code=400, detail=result['message'])
+    
+    return result
