@@ -357,28 +357,8 @@ async function initTranslations() {
     // Translate the page
     translatePage();
     
-    // Add language selector to header if it exists
-    const header = document.querySelector('.header');
-    if (header && !document.getElementById('languageDropdown')) {
-        const langSelector = document.createElement('div');
-        langSelector.className = 'language-selector';
-        langSelector.innerHTML = createLanguageSelector();
-        header.appendChild(langSelector);
-        
-        // Add event listeners to language links
-        document.querySelectorAll('[data-lang]').forEach(link => {
-            link.addEventListener('click', async (e) => {
-                e.preventDefault();
-                const newLang = e.target.getAttribute('data-lang');
-                if (setCurrentLanguage(newLang)) {
-                    // Try to load new language from API
-                    await loadTranslationsFromAPI(newLang);
-                    // Reload the page to apply new language
-                    window.location.reload();
-                }
-            });
-        });
-    }
+    // Language selector removed as per requirement:
+    // Language should only be changeable in bot, not in the app
 }
 
 // Export functions
