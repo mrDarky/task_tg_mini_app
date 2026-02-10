@@ -66,8 +66,8 @@ const translations = {
         confirm_submission: 'Confirm Submission',
         confirm_ticket_text: 'Are you sure you want to submit this support ticket?',
         ticket_will_be_sent: 'Your ticket will be sent to our support team for review.',
-        deny: 'Deny',
-        apply: 'Apply',
+        cancel: 'Cancel',
+        confirm: 'Confirm',
         faq: 'Frequently Asked Questions',
         
         // Messages
@@ -154,8 +154,8 @@ const translations = {
         confirm_submission: 'Подтверждение отправки',
         confirm_ticket_text: 'Вы уверены, что хотите отправить это обращение?',
         ticket_will_be_sent: 'Ваше обращение будет отправлено в нашу службу поддержки для рассмотрения.',
-        deny: 'Отклонить',
-        apply: 'Применить',
+        cancel: 'Отмена',
+        confirm: 'Подтвердить',
         faq: 'Часто задаваемые вопросы',
         
         // Messages
@@ -242,8 +242,8 @@ const translations = {
         confirm_submission: 'Confirmar envío',
         confirm_ticket_text: '¿Estás seguro de que quieres enviar este ticket de soporte?',
         ticket_will_be_sent: 'Tu ticket será enviado a nuestro equipo de soporte para su revisión.',
-        deny: 'Denegar',
-        apply: 'Aplicar',
+        cancel: 'Cancelar',
+        confirm: 'Confirmar',
         faq: 'Preguntas frecuentes',
         
         // Messages
@@ -340,9 +340,6 @@ function initTranslations() {
     if (header && !document.getElementById('languageDropdown')) {
         const langSelector = document.createElement('div');
         langSelector.className = 'language-selector';
-        langSelector.style.position = 'absolute';
-        langSelector.style.top = '10px';
-        langSelector.style.right = '10px';
         langSelector.innerHTML = createLanguageSelector();
         header.appendChild(langSelector);
         

@@ -143,7 +143,7 @@ async function handleConfirmSubmit() {
         console.error('Ticket submission error:', error);
     } finally {
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<i class="bi bi-check"></i> Apply';
+        submitBtn.innerHTML = '<i class="bi bi-check"></i> Confirm';
     }
 }
 

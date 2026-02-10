@@ -136,8 +136,8 @@ async def ensure_referral_code(user_id: int, telegram_id: int) -> str:
     """Generate and assign a referral code if user doesn't have one"""
     import hashlib
     
-    # Generate referral code
-    hash_obj = hashlib.md5(f"{telegram_id}_{datetime.now().timestamp()}".encode())
+    # Generate referral code using SHA256 for better security
+    hash_obj = hashlib.sha256(f"{telegram_id}_{datetime.now().timestamp()}".encode())
     referral_code = hash_obj.hexdigest()[:8].upper()
     
     # Update user with referral code

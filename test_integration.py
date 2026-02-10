@@ -37,13 +37,17 @@ async def test_referral_code_generation():
     print(f"✓ Referral code verified: {user['referral_code']}")
     
     # Test ensure_referral_code for user without code
-    # First create user without referral code (simulate old behavior)
-    cursor = await db.execute(
-        "INSERT INTO users (telegram_id, username, stars, status, role) VALUES (?, ?, ?, ?, ?)",
-        (888777666, "olduser", 0, "active", "user")
+    # Directly insert user without referral code to simulate old data
+    await db.execute(
+        "INSERT INTO users (telegram_id, username, referral_code, stars, status, role) VALUES (?, ?, ?, ?, ?, ?)",
+        (888777666, "olduser", None, 0, "active", "user")
     )
-    old_user_id = cursor.lastrowid
+    old_user_row = await db.fetch_one("SELECT * FROM users WHERE telegram_id = ?", (888777666,))
+    old_user_id = old_user_row['id']
     print(f"✓ Created old user without referral code: {old_user_id}")
+    
+    # Verify user doesn't have referral code
+    assert old_user_row['referral_code'] is None, "Old user should not have referral code initially"
     
     # Generate referral code for old user
     new_code = await user_service.ensure_referral_code(old_user_id, 888777666)
