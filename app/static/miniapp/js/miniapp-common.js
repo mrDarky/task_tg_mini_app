@@ -1,3 +1,4 @@
+(function() {
 // Telegram Web App initialization
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -12,7 +13,7 @@ const API_BASE = '/api';
 window.botUsername = 'TaskAppBot'; // Default value
 
 // Load bot info
-async function loadBotInfo() {
+const loadBotInfo = async function() {
     try {
         const response = await fetch('/api/settings/public/bot-info');
         if (response.ok) {
@@ -22,13 +23,13 @@ async function loadBotInfo() {
     } catch (error) {
         console.warn('Failed to load bot info:', error);
     }
-}
+};
 
 // Initialize bot info
 loadBotInfo();
 
 // Get Telegram user data
-function getTelegramUser() {
+const getTelegramUser = function() {
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         return tg.initDataUnsafe.user;
     }
@@ -38,10 +39,10 @@ function getTelegramUser() {
         first_name: 'Test',
         username: 'testuser'
     };
-}
+};
 
 // Fetch with error handling
-async function apiRequest(endpoint, options = {}) {
+const apiRequest = async function(endpoint, options = {}) {
     try {
         const response = await fetch(API_BASE + endpoint, {
             ...options,
@@ -61,19 +62,19 @@ async function apiRequest(endpoint, options = {}) {
         showError('Failed to load data. Please try again.');
         return null;
     }
-}
+};
 
 // Get user by Telegram ID
-async function getUserByTelegramId(telegramId) {
+const getUserByTelegramId = async function(telegramId) {
     const response = await apiRequest(`/users?search=${telegramId}`);
     if (response && response.users && response.users.length > 0) {
         return response.users[0];
     }
     return null;
-}
+};
 
 // Show toast notification
-function showToast(message, type = 'success') {
+const showToast = function(message, type = 'success') {
     // Use Telegram's alert if available
     if (tg && tg.showAlert) {
         tg.showAlert(message);
@@ -91,27 +92,27 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.remove();
     }, 3000);
-}
+};
 
 // Show error message
-function showError(message) {
+const showError = function(message) {
     showToast(message, 'danger');
-}
+};
 
 // Show success message
-function showSuccess(message) {
+const showSuccess = function(message) {
     showToast(message, 'success');
-}
+};
 
 // Show loading spinner
-function showLoading(element) {
+const showLoading = function(element) {
     if (element) {
         element.innerHTML = '<div class="spinner"></div>';
     }
-}
+};
 
 // Format date
-function formatDate(dateString) {
+const formatDate = function(dateString) {
     const date = new Date(dateString);
     const lang = window.i18n?.getCurrentLanguage() || 'en';
     const locales = {
@@ -124,35 +125,35 @@ function formatDate(dateString) {
         month: 'short',
         day: 'numeric'
     });
-}
+};
 
 // Format number with commas
-function formatNumber(num) {
+const formatNumber = function(num) {
     return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
+};
 
 // Get task type emoji
-function getTaskTypeEmoji(type) {
+const getTaskTypeEmoji = function(type) {
     const emojis = {
         'youtube': '🎥',
         'tiktok': '🎵',
         'subscribe': '📢'
     };
     return emojis[type] || '📋';
-}
+};
 
 // Get task type color
-function getTaskTypeColor(type) {
+const getTaskTypeColor = function(type) {
     const colors = {
         'youtube': 'danger',
         'tiktok': 'dark',
         'subscribe': 'primary'
     };
     return colors[type] || 'secondary';
-}
+};
 
 // Create task card HTML
-function createTaskCard(task) {
+const createTaskCard = function(task) {
     const emoji = getTaskTypeEmoji(task.type);
     const color = getTaskTypeColor(task.type);
     
@@ -175,28 +176,28 @@ function createTaskCard(task) {
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-primary btn-sm w-100 mt-3" onclick="openTaskDetail(${task.id})">
+                <button class="btn btn-primary btn-sm w-100 mt-3" onclick="window.miniApp.openTaskDetail(${task.id})">
                     View Details
                 </button>
             </div>
         </div>
     `;
-}
+};
 
 // Open task detail page
-function openTaskDetail(taskId) {
+const openTaskDetail = function(taskId) {
     window.location.href = `/miniapp/task/${taskId}`;
-}
+};
 
 // Initialize Telegram Web App theme
-function initTheme() {
+const initTheme = function() {
     if (tg && tg.colorScheme) {
         document.body.setAttribute('data-theme', tg.colorScheme);
     }
-}
+};
 
 // Copy to clipboard
-function copyToClipboard(text) {
+const copyToClipboard = function(text) {
     if (navigator.clipboard) {
         navigator.clipboard.writeText(text).then(() => {
             showSuccess(window.i18n?.t('copied_to_clipboard') || 'Copied to clipboard!');
@@ -217,10 +218,10 @@ function copyToClipboard(text) {
         }
         document.body.removeChild(textArea);
     }
-}
+};
 
 // Share link
-function shareLink(url, text) {
+const shareLink = function(url, text) {
     if (tg && tg.openTelegramLink) {
         tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`);
     } else if (navigator.share) {
@@ -234,16 +235,16 @@ function shareLink(url, text) {
     } else {
         copyToClipboard(url);
     }
-}
+};
 
 // Open external link
-function openExternalLink(url) {
+const openExternalLink = function(url) {
     if (tg && tg.openLink) {
         tg.openLink(url);
     } else {
         window.open(url, '_blank');
     }
-}
+};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -276,3 +277,4 @@ window.miniApp = {
     shareLink,
     openExternalLink
 };
+})();
