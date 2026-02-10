@@ -5,6 +5,7 @@ from config.settings import settings
 from database.db import db
 from app.services import user_service, task_service, category_service
 from app.models import UserCreate
+from bot.i18n import t
 import asyncio
 import logging
 import hashlib
@@ -81,10 +82,19 @@ async def process_referral(new_user_id: int, referral_code: str):
 async def cmd_start(message: types.Message):
     user = await user_service.get_user_by_telegram_id(message.from_user.id)
     
+    # Get or create bot info to get username
+    bot_info = await bot.get_me()
+    bot_username = bot_info.username
+    
     referral_code = None
     # Extract referral code from start command
     if ' ' in message.text:
         referral_code = message.text.split()[1]
+    
+    # Get user language preference
+    user_lang = 'en'
+    if user:
+        user_lang = await get_user_language(user['id'])
     
     if not user:
         # Generate unique referral code for new user
@@ -101,52 +111,52 @@ async def cmd_start(message: types.Message):
         user_id = await user_service.create_user(user_data)
         user = await user_service.get_user(user_id)
         
+        # Format referral link
+        referral_link = f"https://t.me/{bot_username}?start={user_referral_code}"
+        
         # Process referral if code was provided
         if referral_code:
             referrer_id, bonus = await process_referral(user_id, referral_code)
             first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
             if referrer_id:
-                welcome_msg = (
-                    f"🎉 Welcome to Task App, {first_name_display}!\n\n"
-                    f"You were referred by a friend who earned {bonus} ⭐!\n\n"
-                    f"Complete tasks and earn stars ⭐\n"
-                    f"Your current stars: {user['stars']}\n"
-                    f"Your referral code: `{user_referral_code}`"
+                welcome_msg = t('bot_welcome_referred', user_lang,
+                    name=first_name_display,
+                    bonus=bonus,
+                    stars=user['stars'],
+                    referral_link=referral_link
                 )
             else:
-                welcome_msg = (
-                    f"👋 Welcome to Task App, {first_name_display}!\n\n"
-                    f"Complete tasks and earn stars ⭐\n"
-                    f"Your current stars: {user['stars']}\n"
-                    f"Your referral code: `{user_referral_code}`"
+                welcome_msg = t('bot_welcome_new', user_lang,
+                    name=first_name_display,
+                    stars=user['stars'],
+                    referral_link=referral_link
                 )
         else:
             first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
-            welcome_msg = (
-                f"👋 Welcome to Task App, {first_name_display}!\n\n"
-                f"Complete tasks and earn stars ⭐\n"
-                f"Your current stars: {user['stars']}\n"
-                f"Your referral code: `{user_referral_code}`\n\n"
-                f"Share your code with friends to earn bonus stars!"
+            welcome_msg = t('bot_welcome_new', user_lang,
+                name=first_name_display,
+                stars=user['stars'],
+                referral_link=referral_link
             )
     else:
         first_name_display = escape_markdown(message.from_user.first_name) if message.from_user.first_name else "there"
-        welcome_msg = (
-            f"👋 Welcome back, {first_name_display}!\n\n"
-            f"Your current stars: {user['stars']} ⭐\n"
-            f"Your referral code: `{user['referral_code']}`"
+        referral_link = f"https://t.me/{bot_username}?start={user.get('referral_code', '')}"
+        welcome_msg = t('bot_welcome_back', user_lang,
+            name=first_name_display,
+            stars=user['stars'],
+            referral_link=referral_link
         )
     
     # Create Mini App button
     web_app_url = f"{settings.web_app_url or 'https://example.com'}/miniapp"
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🚀 Open Mini App", web_app=WebAppInfo(url=web_app_url))],
-        [InlineKeyboardButton(text="📋 View Tasks", callback_data="view_tasks")],
-        [InlineKeyboardButton(text="👤 My Profile", callback_data="my_profile"),
-         InlineKeyboardButton(text="🎁 Daily Bonus", callback_data="daily_bonus")],
-        [InlineKeyboardButton(text="ℹ️ Help", callback_data="help"),
-         InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
+        [InlineKeyboardButton(text=t('bot_button_open_app', user_lang), web_app=WebAppInfo(url=web_app_url))],
+        [InlineKeyboardButton(text=t('bot_button_view_tasks', user_lang), callback_data="view_tasks")],
+        [InlineKeyboardButton(text=t('bot_button_my_profile', user_lang), callback_data="my_profile"),
+         InlineKeyboardButton(text=t('bot_button_daily_bonus', user_lang), callback_data="daily_bonus")],
+        [InlineKeyboardButton(text=t('bot_button_help', user_lang), callback_data="help"),
+         InlineKeyboardButton(text=t('bot_button_settings', user_lang), callback_data="settings")]
     ])
     
     await message.answer(
@@ -161,22 +171,24 @@ async def cmd_tasks(message: types.Message):
     """Show tasks organized by categories"""
     user = await user_service.get_user_by_telegram_id(message.from_user.id)
     
+    # Get user language
+    user_lang = 'en'
+    if user:
+        user_lang = await get_user_language(user['id'])
+    
     if not user:
-        await message.answer("Please start the bot first with /start")
+        await message.answer(t('bot_please_start', user_lang))
         return
     
     if user['status'] == 'banned':
-        await message.answer("Your account is banned")
+        await message.answer(t('bot_account_banned', user_lang))
         return
-    
-    # Get user language
-    user_lang = await get_user_language(user['id'])
     
     # Get all categories
     categories = await db.fetch_all("SELECT * FROM categories WHERE parent_id IS NULL")
     
     if not categories:
-        await message.answer("No task categories available at the moment.")
+        await message.answer(t('bot_no_categories', user_lang))
         return
     
     keyboard_buttons = []
@@ -190,13 +202,12 @@ async def cmd_tasks(message: types.Message):
             )
         ])
     
-    keyboard_buttons.append([InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")])
+    keyboard_buttons.append([InlineKeyboardButton(text=t('bot_button_back', user_lang), callback_data="back_to_menu")])
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     
     await message.answer(
-        "📋 *Task Categories*\n\n"
-        "Choose a category to view available tasks:",
+        t('bot_task_categories', user_lang),
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -207,8 +218,13 @@ async def cmd_profile(message: types.Message):
     """Show user profile with stats and achievements"""
     user = await user_service.get_user_by_telegram_id(message.from_user.id)
     
+    # Get user language
+    user_lang = 'en'
+    if user:
+        user_lang = await get_user_language(user['id'])
+    
     if not user:
-        await message.answer("Please start the bot first with /start")
+        await message.answer(t('bot_please_start', user_lang))
         return
     
     # Get user statistics
@@ -234,19 +250,22 @@ async def cmd_profile(message: types.Message):
         [InlineKeyboardButton(text="🏆 View Achievements", callback_data="view_achievements")],
         [InlineKeyboardButton(text="👥 Referral Stats", callback_data="referral_stats")],
         [InlineKeyboardButton(text="📊 Star History", callback_data="star_history")],
-        [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
+        [InlineKeyboardButton(text=t('bot_button_back', user_lang), callback_data="back_to_menu")]
     ])
     
     username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
+    
+    profile_text = f"{t('bot_profile_title', user_lang)}\n\n"
+    profile_text += f"{t('bot_profile_username', user_lang, username=username_display)}\n"
+    profile_text += f"{t('bot_profile_stars', user_lang, stars=user['stars'])}\n"
+    profile_text += f"{t('bot_profile_completed', user_lang, completed=completed_tasks)}\n"
+    profile_text += f"{t('bot_profile_referrals', user_lang, referrals=referral_count)}\n"
+    profile_text += f"{t('bot_profile_achievements', user_lang, achievements=achievements_count)}\n"
+    profile_text += f"{t('bot_profile_status', user_lang, status=user['status'])}\n"
+    profile_text += f"{t('bot_profile_member_since', user_lang, date=user['created_at'][:10])}"
+    
     await message.answer(
-        f"👤 *Your Profile*\n\n"
-        f"Username: @{username_display}\n"
-        f"⭐ Stars: {user['stars']}\n"
-        f"✅ Completed Tasks: {completed_tasks}\n"
-        f"👥 Referrals: {referral_count}\n"
-        f"🏆 Achievements: {achievements_count}\n"
-        f"📌 Status: {user['status']}\n"
-        f"📅 Member since: {user['created_at'][:10]}",
+        profile_text,
         reply_markup=keyboard,
         parse_mode="Markdown"
     )

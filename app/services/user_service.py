@@ -4,6 +4,13 @@ from typing import Optional, List
 from datetime import datetime
 
 
+def parse_iso_datetime(datetime_str: str) -> datetime:
+    """Parse ISO datetime string, handling both Z and timezone offsets"""
+    if not datetime_str:
+        return None
+    return datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+
+
 async def create_user(user: UserCreate) -> int:
     query = """
         INSERT INTO users (telegram_id, username, referral_code, stars, status, role)
@@ -145,3 +152,112 @@ async def ensure_referral_code(user_id: int, telegram_id: int) -> str:
     await db.execute(query, (referral_code, user_id))
     
     return referral_code
+
+
+async def get_user_referrals(user_id: int) -> List[dict]:
+    """Get all referrals for a user"""
+    query = """
+        SELECT r.*, u.username, u.telegram_id, u.created_at as referred_at
+        FROM referrals r
+        JOIN users u ON r.referred_id = u.id
+        WHERE r.referrer_id = ?
+        ORDER BY r.created_at DESC
+    """
+    rows = await db.fetch_all(query, (user_id,))
+    return [dict(row) for row in rows]
+
+
+async def get_daily_bonus_status(user_id: int) -> dict:
+    """Get daily bonus status for a user"""
+    from datetime import datetime, timedelta
+    
+    # Get the last bonus claim
+    query = """
+        SELECT * FROM daily_bonuses
+        WHERE user_id = ?
+        ORDER BY claimed_at DESC
+        LIMIT 1
+    """
+    row = await db.fetch_one(query, (user_id,))
+    
+    if not row:
+        # User has never claimed a bonus
+        return {
+            'can_claim': True,
+            'last_claimed': None,
+            'streak_count': 0,
+            'next_bonus_amount': 10
+        }
+    
+    last_claimed = parse_iso_datetime(row['claimed_at'])
+    now = datetime.now()
+    
+    # Check if 24 hours have passed since last claim
+    time_since_claim = now - last_claimed
+    can_claim = time_since_claim.total_seconds() >= 86400  # 24 hours
+    
+    return {
+        'can_claim': can_claim,
+        'last_claimed': row['claimed_at'],
+        'streak_count': row['streak_count'],
+        'next_bonus_amount': 10 + (row['streak_count'] * 2) if can_claim else row['bonus_amount']
+    }
+
+
+async def claim_daily_bonus(user_id: int) -> dict:
+    """Claim daily bonus for a user"""
+    from datetime import datetime, timedelta
+    
+    # Check if user can claim
+    bonus_status = await get_daily_bonus_status(user_id)
+    
+    if not bonus_status['can_claim']:
+        return {
+            'success': False,
+            'message': 'Daily bonus already claimed today. Come back tomorrow!'
+        }
+    
+    # Calculate streak
+    last_claimed = bonus_status['last_claimed']
+    streak_count = bonus_status['streak_count']
+    
+    if last_claimed:
+        last_claimed_dt = parse_iso_datetime(last_claimed)
+        time_since = datetime.now() - last_claimed_dt
+        
+        # If claimed within 48 hours, continue streak, otherwise reset
+        if time_since.total_seconds() <= 172800:  # 48 hours
+            streak_count += 1
+        else:
+            streak_count = 1
+    else:
+        streak_count = 1
+    
+    # Calculate bonus amount (base 10 + 2 per streak day, max 30)
+    bonus_amount = min(10 + ((streak_count - 1) * 2), 30)
+    
+    # Create bonus record
+    query = """
+        INSERT INTO daily_bonuses (user_id, bonus_amount, streak_count)
+        VALUES (?, ?, ?)
+    """
+    await db.execute(query, (user_id, bonus_amount, streak_count))
+    
+    # Award stars to user
+    update_query = "UPDATE users SET stars = stars + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+    await db.execute(update_query, (bonus_amount, user_id))
+    
+    # Log the transaction
+    log_query = """
+        INSERT INTO star_transactions (user_id, amount, type, reference_type, description)
+        VALUES (?, ?, 'bonus', 'daily_bonus', ?)
+    """
+    await db.execute(log_query, (user_id, bonus_amount, f'Daily bonus - Day {streak_count}'))
+    
+    return {
+        'success': True,
+        'message': f'Daily bonus claimed! You earned {bonus_amount} stars!',
+        'bonus_amount': bonus_amount,
+        'streak_count': streak_count,
+        'total_stars': (await get_user(user_id))['stars']
+    }

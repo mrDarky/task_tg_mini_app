@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from app.models import (
     Language, LanguageCreate, LanguageUpdate,
     Translation, TranslationCreate, TranslationUpdate,
@@ -8,8 +8,12 @@ from app.models import (
 from app.services import language_service
 import json
 from typing import Optional
+from pathlib import Path
 
 router = APIRouter(prefix="/api/languages", tags=["languages"])
+
+# Path to locales directory
+LOCALES_DIR = Path(__file__).parent.parent.parent / "locales"
 
 
 @router.get("/", response_model=list[Language])
@@ -166,3 +170,22 @@ async def import_language_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail="Failed to import language file")
+
+
+@router.get("/json/{language_code}")
+async def get_language_json(language_code: str):
+    """Get language translations as JSON from locales directory"""
+    try:
+        json_file = LOCALES_DIR / f"{language_code}.json"
+        
+        if not json_file.exists():
+            raise HTTPException(status_code=404, detail=f"Language file for '{language_code}' not found")
+        
+        with open(json_file, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        return JSONResponse(content=data)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON format in {language_code}.json: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load language file {language_code}.json: {str(e)}")

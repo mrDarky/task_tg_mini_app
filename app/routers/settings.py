@@ -2,9 +2,19 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Optional
 from app.models import Setting, SettingCreate, SettingUpdate
 from database.db import db
+from config.settings import settings as app_settings
 
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
+
+
+@router.get("/public/bot-info", response_model=dict)
+async def get_bot_info():
+    """Get public bot information"""
+    return {
+        "bot_username": app_settings.bot_username,
+        "web_app_url": app_settings.web_app_url
+    }
 
 
 @router.get("", response_model=List[Setting])
