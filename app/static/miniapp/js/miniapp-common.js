@@ -1,3 +1,4 @@
+(function() {
 // Telegram Web App initialization
 const tg = window.Telegram?.WebApp;
 if (tg) {
@@ -276,3 +277,4 @@ window.miniApp = {
     shareLink,
     openExternalLink
 };
+})();
