@@ -4,6 +4,13 @@ from typing import Optional, List
 from datetime import datetime
 
 
+def parse_iso_datetime(datetime_str: str) -> datetime:
+    """Parse ISO datetime string, handling both Z and timezone offsets"""
+    if not datetime_str:
+        return None
+    return datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+
+
 async def create_user(user: UserCreate) -> int:
     query = """
         INSERT INTO users (telegram_id, username, referral_code, stars, status, role)
@@ -182,7 +189,7 @@ async def get_daily_bonus_status(user_id: int) -> dict:
             'next_bonus_amount': 10
         }
     
-    last_claimed = datetime.fromisoformat(row['claimed_at'].replace('Z', '+00:00'))
+    last_claimed = parse_iso_datetime(row['claimed_at'])
     now = datetime.now()
     
     # Check if 24 hours have passed since last claim
@@ -215,7 +222,7 @@ async def claim_daily_bonus(user_id: int) -> dict:
     streak_count = bonus_status['streak_count']
     
     if last_claimed:
-        last_claimed_dt = datetime.fromisoformat(last_claimed.replace('Z', '+00:00'))
+        last_claimed_dt = parse_iso_datetime(last_claimed)
         time_since = datetime.now() - last_claimed_dt
         
         # If claimed within 48 hours, continue streak, otherwise reset

@@ -185,7 +185,7 @@ async def get_language_json(language_code: str):
             data = json.load(f)
         
         return JSONResponse(content=data)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=500, detail="Invalid JSON file format")
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Invalid JSON format in {language_code}.json: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to load language file: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to load language file {language_code}.json: {str(e)}")
