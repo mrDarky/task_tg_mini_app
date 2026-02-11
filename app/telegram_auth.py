@@ -19,15 +19,18 @@ from config.settings import settings
 from database.db import db
 
 
-async def set_user_id_in_request_state(request: Request, telegram_id: int) -> None:
+async def set_user_id_in_request_state(request: Request, telegram_id: Optional[int]) -> None:
     """
     Helper function to look up user by telegram_id and set request.state.user_id.
     This allows the activity logging middleware to link IP addresses to users.
     
     Args:
         request: FastAPI request object
-        telegram_id: Telegram user ID
+        telegram_id: Telegram user ID (can be None)
     """
+    if not telegram_id:
+        return
+    
     try:
         user = await db.fetch_one(
             "SELECT id FROM users WHERE telegram_id = ?",
@@ -35,9 +38,12 @@ async def set_user_id_in_request_state(request: Request, telegram_id: int) -> No
         )
         if user:
             request.state.user_id = user['id']
-    except Exception:
+    except Exception as e:
         # If database query fails, silently continue without setting user_id
         # This ensures authentication doesn't break if IP tracking has issues
+        # In production, you might want to log this error
+        import logging
+        logging.debug(f"Failed to set user_id in request state: {e}")
         pass
 
 
