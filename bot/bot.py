@@ -17,6 +17,9 @@ logger = logging.getLogger(__name__)
 bot = Bot(token=settings.bot_token)
 dp = Dispatcher()
 
+# Default bot username fallback
+DEFAULT_BOT_USERNAME = 'TaskAppBot'
+
 
 def escape_markdown(text: str) -> str:
     """Escape special characters for Markdown formatting"""
@@ -82,9 +85,16 @@ async def process_referral(new_user_id: int, referral_code: str):
 async def cmd_start(message: types.Message):
     user = await user_service.get_user_by_telegram_id(message.from_user.id)
     
-    # Get or create bot info to get username
-    bot_info = await bot.get_me()
-    bot_username = bot_info.username
+    # Use bot username from settings, fallback to getting from API
+    bot_username = settings.bot_username
+    if not bot_username or bot_username == DEFAULT_BOT_USERNAME:
+        # Try to get from API if not configured
+        try:
+            bot_info = await bot.get_me()
+            bot_username = bot_info.username if bot_info and bot_info.username else DEFAULT_BOT_USERNAME
+        except Exception:
+            bot_username = DEFAULT_BOT_USERNAME
+    
     bot_username_escaped = escape_markdown(bot_username)
     
     referral_code = None

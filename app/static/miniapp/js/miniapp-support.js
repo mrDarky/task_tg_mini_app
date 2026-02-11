@@ -27,6 +27,8 @@ async function loadUserTickets() {
         
         if (tickets && tickets.length > 0) {
             container.innerHTML = tickets.slice(0, 5).map(ticket => createTicketCard(ticket)).join('');
+            // Attach click handlers after rendering
+            attachTicketClickHandlers();
         } else {
             container.innerHTML = `
                 <div class="text-center text-muted py-3">
@@ -59,7 +61,7 @@ function createTicketCard(ticket) {
     const date = new Date(ticket.created_at).toLocaleDateString();
     
     return `
-        <div class="card mb-2 border-0" style="background-color: #f8f9fa;">
+        <div class="card mb-2 border-0 ticket-card" style="background-color: #f8f9fa; cursor: pointer;" data-ticket-id="${ticket.id}">
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -72,6 +74,23 @@ function createTicketCard(ticket) {
             </div>
         </div>
     `;
+}
+
+// Open ticket detail page
+function openTicket(ticketId) {
+    window.location.href = `/miniapp/ticket-detail?id=${ticketId}`;
+}
+
+// Attach click event listeners to ticket cards
+function attachTicketClickHandlers() {
+    document.querySelectorAll('.ticket-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const ticketId = this.getAttribute('data-ticket-id');
+            if (ticketId) {
+                openTicket(ticketId);
+            }
+        });
+    });
 }
 
 // Handle form submission
