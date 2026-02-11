@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from app.models import Setting, SettingCreate, SettingUpdate
+from app.auth import require_auth
 from database.db import db
 from config.settings import settings as app_settings
 
@@ -18,7 +19,7 @@ async def get_bot_info():
 
 
 @router.get("", response_model=List[Setting])
-async def list_settings(category: Optional[str] = None):
+async def list_settings(category: Optional[str] = None, username: str = Depends(require_auth)):
     """List all settings, optionally filtered by category"""
     if category:
         query = "SELECT * FROM settings WHERE category = ? ORDER BY key"
@@ -31,7 +32,7 @@ async def list_settings(category: Optional[str] = None):
 
 
 @router.get("/{key}", response_model=Setting)
-async def get_setting(key: str):
+async def get_setting(key: str, username: str = Depends(require_auth)):
     """Get a specific setting by key"""
     query = "SELECT * FROM settings WHERE key = ?"
     row = await db.fetch_one(query, (key,))
@@ -41,7 +42,7 @@ async def get_setting(key: str):
 
 
 @router.post("", response_model=Setting)
-async def create_setting(setting: SettingCreate):
+async def create_setting(setting: SettingCreate, username: str = Depends(require_auth)):
     """Create a new setting"""
     query = """
         INSERT INTO settings (key, value, category, description)
@@ -62,7 +63,7 @@ async def create_setting(setting: SettingCreate):
 
 
 @router.put("/{key}", response_model=Setting)
-async def update_setting(key: str, setting: SettingUpdate):
+async def update_setting(key: str, setting: SettingUpdate, username: str = Depends(require_auth)):
     """Update an existing setting"""
     # Check if setting exists
     existing = await db.fetch_one("SELECT * FROM settings WHERE key = ?", (key,))
@@ -98,7 +99,7 @@ async def update_setting(key: str, setting: SettingUpdate):
 
 
 @router.delete("/{key}")
-async def delete_setting(key: str):
+async def delete_setting(key: str, username: str = Depends(require_auth)):
     """Delete a setting"""
     result = await db.execute("DELETE FROM settings WHERE key = ?", (key,))
     if result.rowcount == 0:

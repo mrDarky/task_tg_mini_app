@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from app.models import ModerationLog, ModerationLogCreate
+from app.auth import require_auth
 from database.db import db
 
 
@@ -13,7 +14,8 @@ async def list_moderation_logs(
     entity_type: Optional[str] = None,
     action: Optional[str] = None,
     page: int = 1,
-    per_page: int = 50
+    per_page: int = 50,
+    username: str = Depends(require_auth)
 ):
     """List moderation logs with optional filters"""
     conditions = []
@@ -46,7 +48,7 @@ async def list_moderation_logs(
 
 
 @router.post("/logs", response_model=ModerationLog)
-async def create_moderation_log(log: ModerationLogCreate):
+async def create_moderation_log(log: ModerationLogCreate, username: str = Depends(require_auth)):
     """Create a new moderation log entry"""
     query = """
         INSERT INTO moderation_logs 
@@ -73,7 +75,7 @@ async def create_moderation_log(log: ModerationLogCreate):
 
 
 @router.get("/logs/{log_id}", response_model=ModerationLog)
-async def get_moderation_log(log_id: int):
+async def get_moderation_log(log_id: int, username: str = Depends(require_auth)):
     """Get a specific moderation log"""
     query = "SELECT * FROM moderation_logs WHERE id = ?"
     row = await db.fetch_one(query, (log_id,))
@@ -83,7 +85,7 @@ async def get_moderation_log(log_id: int):
 
 
 @router.get("/stats/summary")
-async def get_moderation_stats():
+async def get_moderation_stats(username: str = Depends(require_auth)):
     """Get moderation statistics"""
     # Actions by type
     actions = await db.fetch_all("""

@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional
 from app.models import Notification, NotificationCreate
+from app.auth import require_auth
 from database.db import db
 
 
@@ -11,7 +12,8 @@ router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 async def list_notifications(
     status: Optional[str] = None,
     page: int = 1,
-    per_page: int = 20
+    per_page: int = 20,
+    username: str = Depends(require_auth)
 ):
     """List notifications"""
     conditions = []
@@ -38,7 +40,7 @@ async def list_notifications(
 
 
 @router.get("/{notification_id}", response_model=Notification)
-async def get_notification(notification_id: int):
+async def get_notification(notification_id: int, username: str = Depends(require_auth)):
     """Get a specific notification"""
     query = "SELECT * FROM notifications WHERE id = ?"
     row = await db.fetch_one(query, (notification_id,))
@@ -48,7 +50,7 @@ async def get_notification(notification_id: int):
 
 
 @router.post("", response_model=Notification)
-async def create_notification(notification: NotificationCreate, created_by: int):
+async def create_notification(notification: NotificationCreate, created_by: int, username: str = Depends(require_auth)):
     """Create a new notification"""
     query = """
         INSERT INTO notifications 
@@ -74,7 +76,7 @@ async def create_notification(notification: NotificationCreate, created_by: int)
 
 
 @router.post("/{notification_id}/send")
-async def send_notification(notification_id: int):
+async def send_notification(notification_id: int, username: str = Depends(require_auth)):
     """Send a notification to users"""
     notification = await db.fetch_one(
         "SELECT * FROM notifications WHERE id = ?",
@@ -110,7 +112,7 @@ async def send_notification(notification_id: int):
 
 
 @router.delete("/{notification_id}")
-async def delete_notification(notification_id: int):
+async def delete_notification(notification_id: int, username: str = Depends(require_auth)):
     """Delete a notification"""
     result = await db.execute("DELETE FROM notifications WHERE id = ?", (notification_id,))
     if result.rowcount == 0:

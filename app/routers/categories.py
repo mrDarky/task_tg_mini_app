@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from app.models import CategoryCreate, CategoryUpdate
 from app.services import category_service
-from app.telegram_auth import get_telegram_user
+from app.auth import require_auth, get_admin_or_telegram_user
 from typing import Optional, Dict, Any
 
 
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/categories", tags=["categories"])
 
 
 @router.post("/", response_model=dict)
-async def create_category(category: CategoryCreate):
+async def create_category(category: CategoryCreate, username: str = Depends(require_auth)):
     try:
         category_id = await category_service.create_category(category)
         return {"id": category_id, "message": "Category created successfully"}
@@ -18,7 +18,7 @@ async def create_category(category: CategoryCreate):
 
 
 @router.get("/{category_id}", response_model=dict)
-async def get_category(category_id: int, include_translations: bool = Query(default=False)):
+async def get_category(category_id: int, include_translations: bool = Query(default=False), username: str = Depends(require_auth)):
     category = await category_service.get_category(category_id, include_translations)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -29,27 +29,25 @@ async def get_category(category_id: int, include_translations: bool = Query(defa
 async def get_categories(
     parent_id: Optional[int] = None, 
     include_translations: bool = Query(default=False),
-    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+    auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     """
     List all categories.
     
-    Note: Categories are public data visible to all authenticated Telegram users.
-    This endpoint requires authentication to ensure requests come from the mini-app,
-    but returns all categories in the system for organizing tasks.
+    Accessible by both admin users (via session) and Telegram Mini App users.
     """
     categories = await category_service.get_categories(parent_id, include_translations)
     return {"categories": categories}
 
 
 @router.get("/tree/all", response_model=dict)
-async def get_category_tree(include_translations: bool = Query(default=False)):
+async def get_category_tree(include_translations: bool = Query(default=False), username: str = Depends(require_auth)):
     tree = await category_service.get_category_tree(include_translations)
     return {"tree": tree}
 
 
 @router.put("/{category_id}", response_model=dict)
-async def update_category(category_id: int, category_update: CategoryUpdate):
+async def update_category(category_id: int, category_update: CategoryUpdate, username: str = Depends(require_auth)):
     category = await category_service.get_category(category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -59,7 +57,7 @@ async def update_category(category_id: int, category_update: CategoryUpdate):
 
 
 @router.delete("/{category_id}", response_model=dict)
-async def delete_category(category_id: int):
+async def delete_category(category_id: int, username: str = Depends(require_auth)):
     category = await category_service.get_category(category_id)
     if not category:
         raise HTTPException(status_code=404, detail="Category not found")
