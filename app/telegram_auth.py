@@ -14,8 +14,37 @@ import hashlib
 import json
 from typing import Optional, Dict, Any
 from urllib.parse import parse_qsl
-from fastapi import HTTPException, Header, status
+from fastapi import HTTPException, Header, status, Request
 from config.settings import settings
+from database.db import db
+
+
+async def set_user_id_in_request_state(request: Request, telegram_id: Optional[int]) -> None:
+    """
+    Helper function to look up user by telegram_id and set request.state.user_id.
+    This allows the activity logging middleware to link IP addresses to users.
+    
+    Args:
+        request: FastAPI request object
+        telegram_id: Telegram user ID (can be None)
+    """
+    if not telegram_id:
+        return
+    
+    try:
+        user = await db.fetch_one(
+            "SELECT id FROM users WHERE telegram_id = ?",
+            (telegram_id,)
+        )
+        if user:
+            request.state.user_id = user['id']
+    except Exception as e:
+        # If database query fails, silently continue without setting user_id
+        # This ensures authentication doesn't break if IP tracking has issues
+        # In production, you might want to log this error
+        import logging
+        logging.debug(f"Failed to set user_id in request state: {e}")
+        pass
 
 
 def validate_telegram_init_data(init_data: str) -> Dict[str, Any]:
@@ -126,6 +155,7 @@ def validate_telegram_init_data(init_data: str) -> Dict[str, Any]:
 
 
 async def get_telegram_user(
+    request: Request,
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data")
 ) -> Dict[str, Any]:
     """
@@ -135,6 +165,7 @@ async def get_telegram_user(
     comes from a legitimate Telegram user.
     
     Args:
+        request: FastAPI request object
         x_telegram_init_data: The initData from Telegram Web App sent in header
         
     Returns:
@@ -159,10 +190,16 @@ async def get_telegram_user(
             detail="Telegram authentication required. Please access this API through the Telegram Mini App."
         )
     
-    return validate_telegram_init_data(x_telegram_init_data)
+    telegram_user = validate_telegram_init_data(x_telegram_init_data)
+    
+    # Set user_id in request state for activity logging
+    await set_user_id_in_request_state(request, telegram_user.get('telegram_id'))
+    
+    return telegram_user
 
 
 async def get_telegram_user_optional(
+    request: Request,
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data")
 ) -> Optional[Dict[str, Any]]:
     """
@@ -173,6 +210,7 @@ async def get_telegram_user_optional(
     work both with and without authentication.
     
     Args:
+        request: FastAPI request object
         x_telegram_init_data: The initData from Telegram Web App sent in header
         
     Returns:
@@ -185,6 +223,11 @@ async def get_telegram_user_optional(
         return None
     
     try:
-        return validate_telegram_init_data(x_telegram_init_data)
+        telegram_user = validate_telegram_init_data(x_telegram_init_data)
+        
+        # Set user_id in request state for activity logging
+        await set_user_id_in_request_state(request, telegram_user.get('telegram_id'))
+        
+        return telegram_user
     except HTTPException:
         return None

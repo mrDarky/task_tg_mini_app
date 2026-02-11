@@ -112,10 +112,14 @@ async def get_admin_or_telegram_user(
 
     # Try Telegram auth (header-based)
     if x_telegram_init_data and settings.bot_token:
-        from app.telegram_auth import validate_telegram_init_data
+        from app.telegram_auth import validate_telegram_init_data, set_user_id_in_request_state
         try:
             tg_user = validate_telegram_init_data(x_telegram_init_data)
             tg_user['auth_type'] = 'telegram'
+            
+            # Set user_id in request state for activity logging
+            await set_user_id_in_request_state(request, tg_user.get('telegram_id'))
+            
             return tg_user
         except HTTPException:
             pass
