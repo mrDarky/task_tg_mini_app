@@ -3,6 +3,7 @@ let currentUser = null;
 let allTasks = [];
 let allCategories = [];
 let currentFilter = 'all';
+let showingHistory = false;
 
 // Load categories from API
 async function loadCategories() {
@@ -56,15 +57,30 @@ async function loadTasks() {
     const container = document.getElementById('tasksList');
     window.miniApp.showLoading(container);
     
-    const response = await window.miniApp.apiRequest('/tasks?status=active');
-    // API returns {tasks: [...], total: n, skip: n, limit: n}
-    const tasks = response && response.tasks ? response.tasks : [];
+    const endpoint = showingHistory 
+        ? `/users/${currentUser.id}/tasks?status=completed`
+        : '/tasks?status=active&exclude_completed=true';
+    
+    const response = await window.miniApp.apiRequest(endpoint);
+    
+    // Handle different response formats
+    let tasks;
+    if (showingHistory) {
+        // User tasks endpoint returns array directly
+        tasks = Array.isArray(response) ? response : [];
+    } else {
+        // Tasks endpoint returns {tasks: [...], total: n, skip: n, limit: n}
+        tasks = response && response.tasks ? response.tasks : [];
+    }
     
     if (tasks && tasks.length > 0) {
         allTasks = tasks;
         filterTasks(currentFilter);
     } else {
-        container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>No tasks available</p></div>';
+        const emptyMessage = showingHistory 
+            ? 'No completed tasks yet'
+            : 'No tasks available';
+        container.innerHTML = `<div class="empty-state"><i class="bi bi-inbox"></i><p>${emptyMessage}</p></div>`;
     }
 }
 
@@ -99,7 +115,35 @@ function filterTasks(category) {
     }
 }
 
+// Toggle between new tasks and task history
+function toggleTaskHistory() {
+    showingHistory = !showingHistory;
+    
+    // Update header text and button
+    const headerText = document.querySelector('.header h5');
+    const historyBtn = document.getElementById('taskHistoryBtn');
+    
+    if (showingHistory) {
+        headerText.textContent = '📜 Task History';
+        historyBtn.innerHTML = '<i class="bi bi-arrow-left"></i>';
+        historyBtn.title = 'Back to new tasks';
+    } else {
+        headerText.textContent = '📋 Available Tasks';
+        historyBtn.innerHTML = '<i class="bi bi-clock-history"></i>';
+        historyBtn.title = 'View task history';
+    }
+    
+    // Reload tasks
+    loadTasks();
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     loadData();
+    
+    // Task history button
+    const historyBtn = document.getElementById('taskHistoryBtn');
+    if (historyBtn) {
+        historyBtn.addEventListener('click', toggleTaskHistory);
+    }
 });
