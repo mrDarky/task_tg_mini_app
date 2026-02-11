@@ -143,22 +143,17 @@ async function setupReferralSection() {
     const botUsername = window.botUsername || 'TaskAppBot';
     const referralUrl = `https://t.me/${botUsername}?start=${referralCode}`;
     
-    document.getElementById('referralCode').value = referralCode;
+    // Set the referral link in the input field
+    document.getElementById('referralLink').value = referralUrl;
     
-    // Also display the full link
-    const referralLinkDisplay = document.getElementById('referralLinkDisplay');
-    if (referralLinkDisplay) {
-        referralLinkDisplay.textContent = referralUrl;
-    }
-    
-    // Copy code button
-    document.getElementById('copyCodeBtn').addEventListener('click', () => {
-        copyToClipboard(referralCode);
+    // Copy link button
+    document.getElementById('copyLinkBtn').addEventListener('click', () => {
+        copyToClipboard(referralUrl);
     });
     
     // Share button
     document.getElementById('shareBtn').addEventListener('click', () => {
-        const shareText = window.i18n?.t('invite_friends') || `Join Task App and earn stars by completing simple tasks! Use my referral code: ${referralCode}`;
+        const shareText = window.i18n?.t('invite_friends') || `Join Task App and earn stars by completing simple tasks! Use my referral link: ${referralUrl}`;
         shareLink(referralUrl, shareText);
     });
 }
