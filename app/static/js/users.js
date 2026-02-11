@@ -368,9 +368,22 @@ async function viewUserIps(userId) {
             `).join('');
         }
         
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('viewIpsModal'));
-        modal.show();
+        // Show modal - use Bootstrap if available, otherwise fall back to manual display
+        const modalEl = document.getElementById('viewIpsModal');
+        if (typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } else {
+            // Fallback: manually show modal
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
+            // Create backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'ips-modal-backdrop';
+            document.body.appendChild(backdrop);
+        }
     } catch (error) {
         console.error('Error fetching IP addresses:', error);
         showAlert('Failed to fetch IP addresses', 'danger');
@@ -411,9 +424,22 @@ async function viewUserTasks(userId) {
             }).join('');
         }
         
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('viewTasksModal'));
-        modal.show();
+        // Show modal - use Bootstrap if available, otherwise fall back to manual display
+        const modalEl = document.getElementById('viewTasksModal');
+        if (typeof bootstrap !== 'undefined') {
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        } else {
+            // Fallback: manually show modal
+            modalEl.classList.add('show');
+            modalEl.style.display = 'block';
+            document.body.classList.add('modal-open');
+            // Create backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            backdrop.id = 'tasks-modal-backdrop';
+            document.body.appendChild(backdrop);
+        }
     } catch (error) {
         console.error('Error fetching completed tasks:', error);
         showAlert('Failed to fetch completed tasks', 'danger');
