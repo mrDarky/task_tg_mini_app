@@ -93,7 +93,7 @@ async function loadAchievements() {
     
     try {
         // Fetch achievements from API
-        const achievements = await apiRequest(`/api/users/${currentUser.id}/achievements`);
+        const achievements = await apiRequest(`/users/${currentUser.id}/achievements`);
         
         if (achievements && achievements.length > 0) {
             // Update achievement count
@@ -126,7 +126,7 @@ async function setupReferralSection() {
     // If user doesn't have a referral code, generate one
     if (!referralCode) {
         try {
-            const response = await apiRequest(`/api/users/${currentUser.id}/generate-referral`, {
+            const response = await apiRequest(`/users/${currentUser.id}/generate-referral`, {
                 method: 'POST'
             });
             if (response && response.referral_code) {
