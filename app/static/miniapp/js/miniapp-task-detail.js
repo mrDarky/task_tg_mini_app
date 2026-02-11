@@ -32,8 +32,9 @@ async function loadTaskDetail() {
     }
     
     // Check if task is already completed
+    // Note: This could be optimized by adding completion status to task detail response
     const userTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
-    const isCompleted = userTasks && userTasks.some(ut => ut.task_id === taskId);
+    const isCompleted = userTasks && userTasks.some(ut => ut.id === taskId);
     currentTask.isCompleted = isCompleted;
     
     displayTaskDetails();

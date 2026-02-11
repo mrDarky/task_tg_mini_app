@@ -274,11 +274,10 @@ async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dic
         SELECT 
             ut.id as user_task_id,
             ut.user_id,
-            ut.task_id,
+            ut.task_id as id,
             ut.status,
             ut.completed_at,
             ut.created_at,
-            t.id,
             t.title,
             t.description,
             t.type,

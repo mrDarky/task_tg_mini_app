@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from app.models import UserCreate, UserUpdate, User
-from app.services import user_service
+from app.services import user_service, task_service
 from app.telegram_auth import get_telegram_user
 from app.auth import require_auth, get_admin_or_telegram_user
 from typing import Optional, List, Dict, Any
@@ -249,8 +249,6 @@ async def complete_task(
     telegram_user: Dict[str, Any] = Depends(get_telegram_user)
 ):
     """Complete a task for a user"""
-    from app.services import task_service
-    
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
