@@ -272,9 +272,9 @@ async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dic
     
     query = """
         SELECT 
-            ut.id,
+            ut.id as user_task_id,
             ut.user_id,
-            ut.task_id,
+            ut.task_id as id,
             ut.status,
             ut.completed_at,
             ut.created_at,
@@ -282,7 +282,8 @@ async def get_user_tasks(user_id: int, status: Optional[str] = None) -> List[dic
             t.description,
             t.type,
             t.url,
-            t.reward
+            t.reward,
+            t.category_id
         FROM user_tasks ut
         JOIN tasks t ON ut.task_id = t.id
         WHERE ut.user_id = ?
