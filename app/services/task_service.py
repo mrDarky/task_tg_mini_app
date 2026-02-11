@@ -48,7 +48,8 @@ async def get_tasks(
     category_id: Optional[int] = None,
     skip: int = 0,
     limit: int = 100,
-    include_translations: bool = False
+    include_translations: bool = False,
+    exclude_completed_by_user: Optional[int] = None
 ) -> List[dict]:
     query = "SELECT * FROM tasks WHERE 1=1"
     params = []
@@ -69,6 +70,11 @@ async def get_tasks(
     if category_id:
         query += " AND category_id = ?"
         params.append(category_id)
+    
+    # Exclude tasks already completed by the user
+    if exclude_completed_by_user:
+        query += " AND id NOT IN (SELECT task_id FROM user_tasks WHERE user_id = ? AND status = 'completed')"
+        params.append(exclude_completed_by_user)
     
     query += " ORDER BY id DESC LIMIT ? OFFSET ?"
     params.extend([limit, skip])
@@ -106,7 +112,8 @@ async def count_tasks(
     search: Optional[str] = None,
     task_type: Optional[str] = None,
     status: Optional[str] = None,
-    category_id: Optional[int] = None
+    category_id: Optional[int] = None,
+    exclude_completed_by_user: Optional[int] = None
 ) -> int:
     query = "SELECT COUNT(*) as count FROM tasks WHERE 1=1"
     params = []
@@ -127,6 +134,11 @@ async def count_tasks(
     if category_id:
         query += " AND category_id = ?"
         params.append(category_id)
+    
+    # Exclude tasks already completed by the user
+    if exclude_completed_by_user:
+        query += " AND id NOT IN (SELECT task_id FROM user_tasks WHERE user_id = ? AND status = 'completed')"
+        params.append(exclude_completed_by_user)
     
     row = await db.fetch_one(query, tuple(params))
     return row['count'] if row else 0

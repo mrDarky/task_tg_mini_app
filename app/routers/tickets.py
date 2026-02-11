@@ -76,13 +76,22 @@ async def list_tickets(
 
 
 @router.get("/{ticket_id}", response_model=Ticket)
-async def get_ticket(ticket_id: int, username: str = Depends(require_auth)):
+async def get_ticket(ticket_id: int, auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)):
     """Get a specific ticket"""
     query = "SELECT * FROM tickets WHERE id = ?"
     row = await db.fetch_one(query, (ticket_id,))
     if not row:
         raise HTTPException(status_code=404, detail="Ticket not found")
-    return dict(row)
+    
+    ticket = dict(row)
+    
+    # If Telegram user, enforce ownership - they can only see their own tickets
+    if auth_user.get('auth_type') == 'telegram':
+        user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (ticket['user_id'],))
+        if not user or user['telegram_id'] != auth_user['telegram_id']:
+            raise HTTPException(status_code=403, detail="You don't have permission to view this ticket")
+    
+    return ticket
 
 
 @router.post("", response_model=Ticket)
@@ -147,8 +156,19 @@ async def update_ticket(ticket_id: int, ticket: TicketUpdate, username: str = De
 
 
 @router.get("/{ticket_id}/responses", response_model=List[TicketResponse])
-async def get_ticket_responses(ticket_id: int, username: str = Depends(require_auth)):
+async def get_ticket_responses(ticket_id: int, auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)):
     """Get all responses for a ticket"""
+    # Check if ticket exists and user has permission to view it
+    ticket = await db.fetch_one("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # If Telegram user, enforce ownership
+    if auth_user.get('auth_type') == 'telegram':
+        user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (ticket['user_id'],))
+        if not user or user['telegram_id'] != auth_user['telegram_id']:
+            raise HTTPException(status_code=403, detail="You don't have permission to view this ticket")
+    
     query = """
         SELECT * FROM ticket_responses 
         WHERE ticket_id = ? 
@@ -159,12 +179,20 @@ async def get_ticket_responses(ticket_id: int, username: str = Depends(require_a
 
 
 @router.post("/{ticket_id}/responses", response_model=TicketResponse)
-async def create_ticket_response(ticket_id: int, response: TicketResponseCreate, username: str = Depends(require_auth)):
+async def create_ticket_response(ticket_id: int, response: TicketResponseCreate, auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)):
     """Add a response to a ticket"""
     # Check if ticket exists
     ticket = await db.fetch_one("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
+    
+    # If Telegram user, enforce ownership and ensure they can only respond to their own tickets
+    if auth_user.get('auth_type') == 'telegram':
+        user = await db.fetch_one("SELECT id, telegram_id FROM users WHERE id = ?", (response.user_id,))
+        if not user or user['telegram_id'] != auth_user['telegram_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        if ticket['user_id'] != response.user_id:
+            raise HTTPException(status_code=403, detail="You don't have permission to respond to this ticket")
     
     query = """
         INSERT INTO ticket_responses (ticket_id, user_id, message, is_admin)

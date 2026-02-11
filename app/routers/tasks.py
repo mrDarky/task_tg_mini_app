@@ -49,25 +49,38 @@ async def get_tasks(
     limit: int = Query(100, ge=1, le=1000),
     include_translations: bool = Query(False),
     language_code: Optional[str] = Query(None),
+    exclude_completed: bool = Query(False),
     auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     """
     List all available tasks.
     
     Accessible by both admin users (via session) and Telegram Mini App users.
+    If exclude_completed=true and user is telegram user, filters out tasks already completed by that user.
     """
+    user_id = None
+    
+    # Get user_id for telegram users to filter completed tasks
+    if exclude_completed and auth_user.get('auth_type') == 'telegram':
+        from database.db import db
+        user = await db.fetch_one("SELECT id FROM users WHERE telegram_id = ?", (auth_user['telegram_id'],))
+        if user:
+            user_id = user['id']
+    
     if language_code:
         tasks = await task_service.get_tasks_by_language(
             language_code, search=search, task_type=task_type, 
-            status=status, category_id=category_id, skip=skip, limit=limit
+            status=status, category_id=category_id, skip=skip, limit=limit,
+            exclude_completed_by_user=user_id
         )
     else:
         tasks = await task_service.get_tasks(
             search, task_type, status, category_id, skip, limit, 
-            include_translations=include_translations
+            include_translations=include_translations,
+            exclude_completed_by_user=user_id
         )
     
-    total = await task_service.count_tasks(search, task_type, status, category_id)
+    total = await task_service.count_tasks(search, task_type, status, category_id, exclude_completed_by_user=user_id)
     return {
         "tasks": tasks,
         "total": total,
