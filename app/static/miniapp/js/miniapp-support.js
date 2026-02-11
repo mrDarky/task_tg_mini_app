@@ -59,7 +59,7 @@ function createTicketCard(ticket) {
     const date = new Date(ticket.created_at).toLocaleDateString();
     
     return `
-        <div class="card mb-2 border-0" style="background-color: #f8f9fa;">
+        <div class="card mb-2 border-0 ticket-card" style="background-color: #f8f9fa; cursor: pointer;" onclick="openTicket(${ticket.id})">
             <div class="card-body p-2">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
@@ -72,6 +72,11 @@ function createTicketCard(ticket) {
             </div>
         </div>
     `;
+}
+
+// Open ticket detail page
+function openTicket(ticketId) {
+    window.location.href = `/miniapp/ticket-detail?id=${ticketId}`;
 }
 
 // Handle form submission

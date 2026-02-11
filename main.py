@@ -251,6 +251,11 @@ async def miniapp_support(request: Request):
     return templates.TemplateResponse("miniapp_support.html", {"request": request})
 
 
+@app.get("/miniapp/ticket-detail", response_class=HTMLResponse)
+async def miniapp_ticket_detail(request: Request):
+    return templates.TemplateResponse("miniapp_ticket_detail.html", {"request": request})
+
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
