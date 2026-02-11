@@ -3,6 +3,7 @@ from app.models import TaskCreate, TaskUpdate
 from app.services import task_service
 from app.auth import require_auth, get_admin_or_telegram_user
 from typing import Optional, List, Dict, Any
+from database.db import db
 
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -62,7 +63,6 @@ async def get_tasks(
     
     # Get user_id for telegram users to filter completed tasks
     if exclude_completed and auth_user.get('auth_type') == 'telegram':
-        from database.db import db
         user = await db.fetch_one("SELECT id FROM users WHERE telegram_id = ?", (auth_user['telegram_id'],))
         if user:
             user_id = user['id']

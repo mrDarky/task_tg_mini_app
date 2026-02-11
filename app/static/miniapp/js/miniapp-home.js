@@ -46,9 +46,7 @@ async function loadQuickTasks() {
     const tasks = response && response.tasks ? response.tasks : (Array.isArray(response) ? response : []);
     
     if (tasks && tasks.length > 0) {
-        // Limit to maximum 3 tasks for quick view
-        const quickTasks = tasks.slice(0, 3);
-        container.innerHTML = quickTasks.map(task => window.miniApp.createTaskCard(task)).join('');
+        container.innerHTML = tasks.map(task => window.miniApp.createTaskCard(task)).join('');
     } else {
         container.innerHTML = '<div class="empty-state"><i class="bi bi-inbox"></i><p>No tasks available</p></div>';
     }
