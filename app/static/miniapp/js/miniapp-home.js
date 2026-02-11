@@ -104,21 +104,35 @@ async function claimDailyBonus() {
             method: 'POST'
         });
         
-        if (response) {
-            window.miniApp.showSuccess(window.i18n?.t('bonus_claimed') || 'Daily bonus claimed! +10 ⭐');
-            await loadUserData();
+        if (response && response.success) {
+            window.miniApp.showSuccess(window.i18n?.t('bonus_claimed') || `Daily bonus claimed! +${response.bonus_amount} ⭐`);
+            
+            // Update UI to reflect claimed status
+            document.getElementById('bonusStatus').textContent = window.i18n?.t('already_claimed_today') || 'Already claimed today';
+            document.getElementById('streakText').textContent = `${window.i18n?.t('streak') || 'Streak'}: ${response.streak_count} ${window.i18n?.t('days') || 'days'}`;
+            const progressPercent = Math.min((response.streak_count / 7) * 100, 100);
+            document.getElementById('streakProgress').style.width = `${progressPercent}%`;
+            
+            // Update star balance
+            document.getElementById('starBalance').textContent = window.miniApp.formatNumber(response.total_stars);
+            
+            // Keep button disabled
+            button.disabled = true;
+            button.textContent = window.i18n?.t('claimed') || 'Claimed';
+        } else {
+            // Handle case where API returns success: false
+            const errorMsg = response?.message || window.i18n?.t('failed_to_claim') || 'Failed to claim bonus';
+            window.miniApp.showError(errorMsg);
+            // Re-enable button on error
+            button.disabled = false;
+            button.textContent = window.i18n?.t('claim_btn') || 'Claim';
         }
     } catch (error) {
-        window.miniApp.showError(window.i18n?.t('failed_to_claim') || 'Failed to claim bonus');
-    } finally {
+        window.miniApp.showError(error.message || window.i18n?.t('failed_to_claim') || 'Failed to claim bonus');
+        // Re-enable button on error
         button.disabled = false;
         button.textContent = window.i18n?.t('claim_btn') || 'Claim';
     }
-}
-
-// Handle notification button
-function showNotifications() {
-    window.miniApp.showToast('No new notifications');
 }
 
 // Event listeners
@@ -128,10 +142,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const claimBtn = document.getElementById('claimBonusBtn');
     if (claimBtn) {
         claimBtn.addEventListener('click', claimDailyBonus);
-    }
-    
-    const notifBtn = document.getElementById('notificationBtn');
-    if (notifBtn) {
-        notifBtn.addEventListener('click', showNotifications);
     }
 });
