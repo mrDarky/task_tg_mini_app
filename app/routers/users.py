@@ -1,18 +1,27 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.models import UserCreate, UserUpdate, User
 from app.services import user_service
-from typing import Optional, List
+from app.telegram_auth import get_telegram_user
+from typing import Optional, List, Dict, Any
 
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 
 
 @router.get("/{user_id}/tasks", response_model=list)
-async def fetch_user_tasks(user_id: int, status: Optional[str] = Query(None)):
+async def fetch_user_tasks(
+    user_id: int, 
+    status: Optional[str] = Query(None),
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Get all tasks for a user, optionally filtered by status"""
+    # Verify the authenticated user is requesting their own data
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     try:
         tasks = await user_service.get_user_tasks(user_id, status)
@@ -31,10 +40,18 @@ async def create_user(user: UserCreate):
 
 
 @router.get("/{user_id}", response_model=dict)
-async def get_user(user_id: int):
+async def get_user(
+    user_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is requesting their own data
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     return user
 
 
@@ -131,33 +148,54 @@ async def generate_referral_code(user_id: int):
 
 
 @router.get("/{user_id}/referrals", response_model=list)
-async def get_user_referrals(user_id: int):
+async def get_user_referrals(
+    user_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Get all referrals for a user"""
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is requesting their own data
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     referrals = await user_service.get_user_referrals(user_id)
     return referrals
 
 
 @router.get("/{user_id}/daily-bonus", response_model=dict)
-async def get_daily_bonus_status(user_id: int):
+async def get_daily_bonus_status(
+    user_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Get daily bonus status for a user"""
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is requesting their own data
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     bonus_status = await user_service.get_daily_bonus_status(user_id)
     return bonus_status
 
 
 @router.post("/{user_id}/claim-bonus", response_model=dict)
-async def claim_daily_bonus(user_id: int):
+async def claim_daily_bonus(
+    user_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Claim daily bonus for a user"""
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is claiming their own bonus
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     result = await user_service.claim_daily_bonus(user_id)
     if not result['success']:
@@ -167,11 +205,18 @@ async def claim_daily_bonus(user_id: int):
 
 
 @router.get("/{user_id}/achievements", response_model=list)
-async def get_user_achievements(user_id: int):
+async def get_user_achievements(
+    user_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Get all achievements for a user"""
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is requesting their own data
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     achievements = await user_service.get_user_achievements(user_id)
     return achievements

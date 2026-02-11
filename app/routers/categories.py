@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.models import CategoryCreate, CategoryUpdate
 from app.services import category_service
-from typing import Optional
+from app.telegram_auth import get_telegram_user
+from typing import Optional, Dict, Any
 
 
 router = APIRouter(prefix="/api/categories", tags=["categories"])
@@ -25,7 +26,18 @@ async def get_category(category_id: int, include_translations: bool = Query(defa
 
 
 @router.get("/", response_model=dict)
-async def get_categories(parent_id: Optional[int] = None, include_translations: bool = Query(default=False)):
+async def get_categories(
+    parent_id: Optional[int] = None, 
+    include_translations: bool = Query(default=False),
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
+    """
+    List all categories.
+    
+    Note: Categories are public data visible to all authenticated Telegram users.
+    This endpoint requires authentication to ensure requests come from the mini-app,
+    but returns all categories in the system for organizing tasks.
+    """
     categories = await category_service.get_categories(parent_id, include_translations)
     return {"categories": categories}
 

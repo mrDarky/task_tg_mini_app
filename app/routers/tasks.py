@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from app.models import TaskCreate, TaskUpdate
 from app.services import task_service
-from typing import Optional, List
+from app.telegram_auth import get_telegram_user
+from typing import Optional, List, Dict, Any
 
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -20,8 +21,16 @@ async def create_task(task: TaskCreate):
 async def get_task(
     task_id: int,
     include_translations: bool = Query(False),
-    language_code: Optional[str] = Query(None)
+    language_code: Optional[str] = Query(None),
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
 ):
+    """
+    Get a single task by ID.
+    
+    Note: Tasks are public data visible to all authenticated Telegram users.
+    This endpoint requires authentication to ensure requests come from the mini-app,
+    but doesn't restrict which tasks users can view.
+    """
     if language_code:
         task = await task_service.get_task_by_language(task_id, language_code)
     else:
@@ -41,8 +50,17 @@ async def get_tasks(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=1000),
     include_translations: bool = Query(False),
-    language_code: Optional[str] = Query(None)
+    language_code: Optional[str] = Query(None),
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
 ):
+    """
+    List all available tasks.
+    
+    Note: Tasks are public data visible to all authenticated Telegram users.
+    This endpoint requires authentication to ensure requests come from the mini-app,
+    but returns all tasks in the system (filtered by provided parameters).
+    Users choose which tasks to complete.
+    """
     if language_code:
         tasks = await task_service.get_tasks_by_language(
             language_code, search=search, task_type=task_type, 
