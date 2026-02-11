@@ -188,6 +188,13 @@ async function handleResponseSubmit(event) {
         return;
     }
     
+    // Validate ticket ID is a valid number
+    const ticketIdNum = parseInt(ticketId);
+    if (isNaN(ticketIdNum)) {
+        showError('Invalid ticket ID');
+        return;
+    }
+    
     const submitBtn = document.getElementById('submitResponseBtn');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
@@ -196,7 +203,7 @@ async function handleResponseSubmit(event) {
         const response = await apiRequest(`/tickets/${ticketId}/responses`, {
             method: 'POST',
             body: JSON.stringify({
-                ticket_id: parseInt(ticketId),
+                ticket_id: ticketIdNum,
                 user_id: currentUser.id,
                 message: message,
                 is_admin: false
