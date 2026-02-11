@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from app.models import TaskCreate, TaskUpdate
 from app.services import task_service
-from app.telegram_auth import get_telegram_user
+from app.auth import require_auth, get_admin_or_telegram_user
 from typing import Optional, List, Dict, Any
 
 
@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
 
 @router.post("/", response_model=dict)
-async def create_task(task: TaskCreate):
+async def create_task(task: TaskCreate, username: str = Depends(require_auth)):
     try:
         task_id = await task_service.create_task(task)
         return {"id": task_id, "message": "Task created successfully"}
@@ -22,14 +22,12 @@ async def get_task(
     task_id: int,
     include_translations: bool = Query(False),
     language_code: Optional[str] = Query(None),
-    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+    auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     """
     Get a single task by ID.
     
-    Note: Tasks are public data visible to all authenticated Telegram users.
-    This endpoint requires authentication to ensure requests come from the mini-app,
-    but doesn't restrict which tasks users can view.
+    Accessible by both admin users (via session) and Telegram Mini App users.
     """
     if language_code:
         task = await task_service.get_task_by_language(task_id, language_code)
@@ -51,15 +49,12 @@ async def get_tasks(
     limit: int = Query(100, ge=1, le=1000),
     include_translations: bool = Query(False),
     language_code: Optional[str] = Query(None),
-    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+    auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     """
     List all available tasks.
     
-    Note: Tasks are public data visible to all authenticated Telegram users.
-    This endpoint requires authentication to ensure requests come from the mini-app,
-    but returns all tasks in the system (filtered by provided parameters).
-    Users choose which tasks to complete.
+    Accessible by both admin users (via session) and Telegram Mini App users.
     """
     if language_code:
         tasks = await task_service.get_tasks_by_language(
@@ -82,7 +77,7 @@ async def get_tasks(
 
 
 @router.put("/{task_id}", response_model=dict)
-async def update_task(task_id: int, task_update: TaskUpdate):
+async def update_task(task_id: int, task_update: TaskUpdate, username: str = Depends(require_auth)):
     task = await task_service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -92,7 +87,7 @@ async def update_task(task_id: int, task_update: TaskUpdate):
 
 
 @router.delete("/{task_id}", response_model=dict)
-async def delete_task(task_id: int):
+async def delete_task(task_id: int, username: str = Depends(require_auth)):
     task = await task_service.get_task(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -102,7 +97,7 @@ async def delete_task(task_id: int):
 
 
 @router.post("/bulk-update", response_model=dict)
-async def bulk_update_tasks(task_ids: List[int], update_data: dict):
+async def bulk_update_tasks(task_ids: List[int], update_data: dict, username: str = Depends(require_auth)):
     if not task_ids:
         raise HTTPException(status_code=400, detail="No task IDs provided")
     
@@ -111,7 +106,7 @@ async def bulk_update_tasks(task_ids: List[int], update_data: dict):
 
 
 @router.get("/{task_id}/translations", response_model=dict)
-async def get_task_translations(task_id: int):
+async def get_task_translations(task_id: int, username: str = Depends(require_auth)):
     """Get all translations for a task"""
     task = await task_service.get_task(task_id)
     if not task:
@@ -126,7 +121,8 @@ async def create_task_translation(
     task_id: int,
     language_id: int,
     title: str,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    username: str = Depends(require_auth)
 ):
     """Create or update a translation for a task"""
     task = await task_service.get_task(task_id)
@@ -138,7 +134,7 @@ async def create_task_translation(
 
 
 @router.delete("/{task_id}/translations/{language_id}", response_model=dict)
-async def delete_task_translation(task_id: int, language_id: int):
+async def delete_task_translation(task_id: int, language_id: int, username: str = Depends(require_auth)):
     """Delete a translation for a task"""
     task = await task_service.get_task(task_id)
     if not task:

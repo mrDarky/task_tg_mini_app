@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Request
 from app.models import UserCreate, UserUpdate, User
 from app.services import user_service
 from app.telegram_auth import get_telegram_user
+from app.auth import require_auth, get_admin_or_telegram_user
 from typing import Optional, List, Dict, Any
 
 
@@ -42,15 +43,16 @@ async def create_user(user: UserCreate):
 @router.get("/{user_id}", response_model=dict)
 async def get_user(
     user_id: int,
-    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+    auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Verify the authenticated user is requesting their own data
-    if user['telegram_id'] != telegram_user['telegram_id']:
-        raise HTTPException(status_code=403, detail="Access denied")
+    # Only enforce ownership check for Telegram users, admins can view any user
+    if auth_user.get('auth_type') == 'telegram':
+        if user['telegram_id'] != auth_user['telegram_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
     
     return user
 
@@ -60,7 +62,8 @@ async def get_users(
     search: Optional[str] = Query(None),
     status: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=1000)
+    limit: int = Query(100, ge=1, le=1000),
+    username: str = Depends(require_auth)
 ):
     users = await user_service.get_users(search, status, skip, limit)
     total = await user_service.count_users(search, status)
@@ -73,7 +76,7 @@ async def get_users(
 
 
 @router.put("/{user_id}", response_model=dict)
-async def update_user(user_id: int, user_update: UserUpdate):
+async def update_user(user_id: int, user_update: UserUpdate, username: str = Depends(require_auth)):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -83,7 +86,7 @@ async def update_user(user_id: int, user_update: UserUpdate):
 
 
 @router.delete("/{user_id}", response_model=dict)
-async def delete_user(user_id: int):
+async def delete_user(user_id: int, username: str = Depends(require_auth)):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -93,7 +96,7 @@ async def delete_user(user_id: int):
 
 
 @router.post("/{user_id}/ban", response_model=dict)
-async def ban_user(user_id: int):
+async def ban_user(user_id: int, username: str = Depends(require_auth)):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -103,7 +106,7 @@ async def ban_user(user_id: int):
 
 
 @router.post("/{user_id}/unban", response_model=dict)
-async def unban_user(user_id: int):
+async def unban_user(user_id: int, username: str = Depends(require_auth)):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -113,7 +116,7 @@ async def unban_user(user_id: int):
 
 
 @router.post("/{user_id}/adjust-stars", response_model=dict)
-async def adjust_stars(user_id: int, stars_delta: int):
+async def adjust_stars(user_id: int, stars_delta: int, username: str = Depends(require_auth)):
     user = await user_service.get_user(user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -123,7 +126,7 @@ async def adjust_stars(user_id: int, stars_delta: int):
 
 
 @router.post("/bulk-update", response_model=dict)
-async def bulk_update_users(user_ids: List[int], update_data: dict):
+async def bulk_update_users(user_ids: List[int], update_data: dict, username: str = Depends(require_auth)):
     if not user_ids:
         raise HTTPException(status_code=400, detail="No user IDs provided")
     
@@ -132,7 +135,7 @@ async def bulk_update_users(user_ids: List[int], update_data: dict):
 
 
 @router.post("/{user_id}/generate-referral", response_model=dict)
-async def generate_referral_code(user_id: int):
+async def generate_referral_code(user_id: int, username: str = Depends(require_auth)):
     """Generate a referral code for a user who doesn't have one"""
     user = await user_service.get_user(user_id)
     if not user:

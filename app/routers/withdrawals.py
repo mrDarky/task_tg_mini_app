@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from app.models import Withdrawal, WithdrawalCreate, WithdrawalUpdate
 from app.telegram_auth import get_telegram_user
+from app.auth import require_auth
 from database.db import db
 
 
@@ -13,7 +14,8 @@ async def list_withdrawals(
     status: Optional[str] = None,
     user_id: Optional[int] = None,
     page: int = 1,
-    per_page: int = 20
+    per_page: int = 20,
+    username: str = Depends(require_auth)
 ):
     """List withdrawals with optional filters"""
     conditions = []
@@ -43,7 +45,7 @@ async def list_withdrawals(
 
 
 @router.get("/{withdrawal_id}", response_model=Withdrawal)
-async def get_withdrawal(withdrawal_id: int):
+async def get_withdrawal(withdrawal_id: int, username: str = Depends(require_auth)):
     """Get a specific withdrawal"""
     query = "SELECT * FROM withdrawals WHERE id = ?"
     row = await db.fetch_one(query, (withdrawal_id,))
@@ -86,7 +88,7 @@ async def create_withdrawal(
 
 
 @router.put("/{withdrawal_id}", response_model=Withdrawal)
-async def update_withdrawal(withdrawal_id: int, withdrawal: WithdrawalUpdate, admin_id: int):
+async def update_withdrawal(withdrawal_id: int, withdrawal: WithdrawalUpdate, admin_id: int, username: str = Depends(require_auth)):
     """Update a withdrawal (approve/reject)"""
     # Check if withdrawal exists
     existing = await db.fetch_one("SELECT * FROM withdrawals WHERE id = ?", (withdrawal_id,))
@@ -131,7 +133,7 @@ async def update_withdrawal(withdrawal_id: int, withdrawal: WithdrawalUpdate, ad
 
 
 @router.get("/stats/summary")
-async def get_withdrawal_stats():
+async def get_withdrawal_stats(username: str = Depends(require_auth)):
     """Get withdrawal statistics"""
     pending = await db.fetch_one(
         "SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total FROM withdrawals WHERE status = 'pending'"

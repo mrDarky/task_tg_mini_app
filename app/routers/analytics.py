@@ -1,6 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from app.services import analytics_service
 from app.models import DashboardStats, RecentActivity, SystemStatus
+from app.auth import require_auth
 from database.db import db
 from datetime import datetime
 from typing import List
@@ -10,13 +11,13 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 
 @router.get("/dashboard", response_model=DashboardStats)
-async def get_dashboard_stats():
+async def get_dashboard_stats(username: str = Depends(require_auth)):
     stats = await analytics_service.get_dashboard_stats()
     return stats
 
 
 @router.get("/recent-activity", response_model=List[RecentActivity])
-async def get_recent_activity(limit: int = 20):
+async def get_recent_activity(limit: int = 20, username: str = Depends(require_auth)):
     """Get recent activity feed"""
     activities = []
     
@@ -80,7 +81,7 @@ async def get_recent_activity(limit: int = 20):
 
 
 @router.get("/system-status", response_model=SystemStatus)
-async def get_system_status():
+async def get_system_status(username: str = Depends(require_auth)):
     """Get system status monitor"""
     # Check database
     db_status = "healthy"

@@ -1,5 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from typing import List, Dict, Any
+from app.auth import require_auth
 from database.db import db
 from datetime import datetime
 
@@ -8,7 +9,7 @@ router = APIRouter(prefix="/api/reports", tags=["reports"])
 
 
 @router.get("/daily-stats")
-async def get_daily_stats(days: int = 30):
+async def get_daily_stats(days: int = 30, username: str = Depends(require_auth)):
     """Get daily statistics for the last N days"""
     query = """
         SELECT 
@@ -25,7 +26,7 @@ async def get_daily_stats(days: int = 30):
 
 
 @router.get("/weekly-stats")
-async def get_weekly_stats(weeks: int = 12):
+async def get_weekly_stats(weeks: int = 12, username: str = Depends(require_auth)):
     """Get weekly statistics"""
     query = """
         SELECT 
@@ -49,7 +50,7 @@ async def get_weekly_stats(weeks: int = 12):
 
 
 @router.get("/monthly-stats")
-async def get_monthly_stats(months: int = 12):
+async def get_monthly_stats(months: int = 12, username: str = Depends(require_auth)):
     """Get monthly statistics"""
     query = """
         SELECT 
@@ -73,7 +74,7 @@ async def get_monthly_stats(months: int = 12):
 
 
 @router.get("/user-engagement")
-async def get_user_engagement():
+async def get_user_engagement(username: str = Depends(require_auth)):
     """Get user engagement metrics"""
     # Active users by period
     daily_active = await db.fetch_one("""
@@ -111,7 +112,7 @@ async def get_user_engagement():
 
 
 @router.get("/task-completion-heatmap")
-async def get_task_completion_heatmap():
+async def get_task_completion_heatmap(username: str = Depends(require_auth)):
     """Get task completion data for heatmap visualization"""
     query = """
         SELECT 
@@ -137,7 +138,7 @@ async def get_task_completion_heatmap():
 
 
 @router.get("/reward-trends")
-async def get_reward_trends():
+async def get_reward_trends(username: str = Depends(require_auth)):
     """Get reward distribution trends"""
     # Stars distributed over time
     query = """
@@ -189,7 +190,7 @@ async def get_reward_trends():
 
 
 @router.get("/task-performance")
-async def get_task_performance():
+async def get_task_performance(username: str = Depends(require_auth)):
     """Get performance metrics for each task"""
     query = """
         SELECT 
@@ -226,7 +227,7 @@ async def get_task_performance():
 
 
 @router.get("/category-analytics")
-async def get_category_analytics():
+async def get_category_analytics(username: str = Depends(require_auth)):
     """Get analytics for categories"""
     query = """
         SELECT 

@@ -1,5 +1,5 @@
-from typing import Optional
-from fastapi import Request, HTTPException, status
+from typing import Optional, Dict, Any
+from fastapi import Request, HTTPException, Header, status
 from fastapi.responses import RedirectResponse
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from passlib.context import CryptContext
@@ -92,6 +92,38 @@ async def require_auth(request: Request) -> str:
         # Raise custom exception that will be handled by exception handler
         raise AuthenticationError()
     return user
+
+
+async def get_admin_or_telegram_user(
+    request: Request,
+    x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data")
+) -> Dict[str, Any]:
+    """
+    Combined auth dependency that accepts either admin session cookie or Telegram initData.
+    
+    Returns a dict with 'auth_type' key:
+    - {'auth_type': 'admin', 'username': '...'} for admin session auth
+    - {'auth_type': 'telegram', 'telegram_id': ..., ...} for Telegram auth
+    """
+    # Try admin session first (cookie-based)
+    admin_user = await get_current_user(request)
+    if admin_user:
+        return {'auth_type': 'admin', 'username': admin_user}
+
+    # Try Telegram auth (header-based)
+    if x_telegram_init_data and settings.bot_token:
+        from app.telegram_auth import validate_telegram_init_data
+        try:
+            tg_user = validate_telegram_init_data(x_telegram_init_data)
+            tg_user['auth_type'] = 'telegram'
+            return tg_user
+        except HTTPException:
+            pass
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required. Use admin session or Telegram Mini App."
+    )
 
 
 async def update_password(username: str, new_password: str) -> bool:

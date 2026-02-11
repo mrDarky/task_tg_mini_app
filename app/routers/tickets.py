@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Optional, Dict, Any
 from app.models import Ticket, TicketCreate, TicketUpdate, TicketResponse, TicketResponseCreate
 from app.telegram_auth import get_telegram_user
+from app.auth import require_auth, get_admin_or_telegram_user
 from database.db import db
 
 
@@ -16,17 +17,28 @@ async def list_tickets(
     user_id: Optional[int] = None,
     page: int = 1,
     per_page: int = 20,
-    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+    auth_user: Dict[str, Any] = Depends(get_admin_or_telegram_user)
 ):
     """List tickets with optional filters"""
     conditions = []
     params = []
     
-    # If user_id is specified, verify it matches the authenticated user
-    if user_id:
-        user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (user_id,))
-        if not user or user['telegram_id'] != telegram_user['telegram_id']:
-            raise HTTPException(status_code=403, detail="Access denied")
+    # If Telegram user, enforce ownership - they can only see their own tickets
+    if auth_user.get('auth_type') == 'telegram':
+        if user_id:
+            user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (user_id,))
+            if not user or user['telegram_id'] != auth_user['telegram_id']:
+                raise HTTPException(status_code=403, detail="Access denied")
+            conditions.append("user_id = ?")
+            params.append(user_id)
+        else:
+            # Telegram users must filter by their own user_id
+            user = await db.fetch_one("SELECT id FROM users WHERE telegram_id = ?", (auth_user['telegram_id'],))
+            if user:
+                conditions.append("user_id = ?")
+                params.append(user['id'])
+    elif user_id:
+        # Admin can filter by any user_id
         conditions.append("user_id = ?")
         params.append(user_id)
     
@@ -64,7 +76,7 @@ async def list_tickets(
 
 
 @router.get("/{ticket_id}", response_model=Ticket)
-async def get_ticket(ticket_id: int):
+async def get_ticket(ticket_id: int, username: str = Depends(require_auth)):
     """Get a specific ticket"""
     query = "SELECT * FROM tickets WHERE id = ?"
     row = await db.fetch_one(query, (ticket_id,))
@@ -100,7 +112,7 @@ async def create_ticket(
 
 
 @router.put("/{ticket_id}", response_model=Ticket)
-async def update_ticket(ticket_id: int, ticket: TicketUpdate):
+async def update_ticket(ticket_id: int, ticket: TicketUpdate, username: str = Depends(require_auth)):
     """Update a ticket"""
     # Check if ticket exists
     existing = await db.fetch_one("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
@@ -135,7 +147,7 @@ async def update_ticket(ticket_id: int, ticket: TicketUpdate):
 
 
 @router.get("/{ticket_id}/responses", response_model=List[TicketResponse])
-async def get_ticket_responses(ticket_id: int):
+async def get_ticket_responses(ticket_id: int, username: str = Depends(require_auth)):
     """Get all responses for a ticket"""
     query = """
         SELECT * FROM ticket_responses 
@@ -147,7 +159,7 @@ async def get_ticket_responses(ticket_id: int):
 
 
 @router.post("/{ticket_id}/responses", response_model=TicketResponse)
-async def create_ticket_response(ticket_id: int, response: TicketResponseCreate):
+async def create_ticket_response(ticket_id: int, response: TicketResponseCreate, username: str = Depends(require_auth)):
     """Add a response to a ticket"""
     # Check if ticket exists
     ticket = await db.fetch_one("SELECT * FROM tickets WHERE id = ?", (ticket_id,))
@@ -176,7 +188,7 @@ async def create_ticket_response(ticket_id: int, response: TicketResponseCreate)
 
 
 @router.get("/stats/summary")
-async def get_ticket_stats():
+async def get_ticket_stats(username: str = Depends(require_auth)):
     """Get ticket statistics"""
     stats = {}
     
