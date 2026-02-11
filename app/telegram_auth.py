@@ -19,7 +19,7 @@ from config.settings import settings
 from database.db import db
 
 
-async def _set_user_id_in_request_state(request: Request, telegram_id: int) -> None:
+async def set_user_id_in_request_state(request: Request, telegram_id: int) -> None:
     """
     Helper function to look up user by telegram_id and set request.state.user_id.
     This allows the activity logging middleware to link IP addresses to users.
@@ -28,12 +28,17 @@ async def _set_user_id_in_request_state(request: Request, telegram_id: int) -> N
         request: FastAPI request object
         telegram_id: Telegram user ID
     """
-    user = await db.fetch_one(
-        "SELECT id FROM users WHERE telegram_id = ?",
-        (telegram_id,)
-    )
-    if user:
-        request.state.user_id = user['id']
+    try:
+        user = await db.fetch_one(
+            "SELECT id FROM users WHERE telegram_id = ?",
+            (telegram_id,)
+        )
+        if user:
+            request.state.user_id = user['id']
+    except Exception:
+        # If database query fails, silently continue without setting user_id
+        # This ensures authentication doesn't break if IP tracking has issues
+        pass
 
 
 def validate_telegram_init_data(init_data: str) -> Dict[str, Any]:
@@ -181,9 +186,8 @@ async def get_telegram_user(
     
     telegram_user = validate_telegram_init_data(x_telegram_init_data)
     
-    # Look up user in database and set user_id in request state for activity logging
-    if telegram_user.get('telegram_id'):
-        await _set_user_id_in_request_state(request, telegram_user['telegram_id'])
+    # Set user_id in request state for activity logging
+    await set_user_id_in_request_state(request, telegram_user.get('telegram_id'))
     
     return telegram_user
 
@@ -215,9 +219,8 @@ async def get_telegram_user_optional(
     try:
         telegram_user = validate_telegram_init_data(x_telegram_init_data)
         
-        # Look up user in database and set user_id in request state for activity logging
-        if telegram_user.get('telegram_id'):
-            await _set_user_id_in_request_state(request, telegram_user['telegram_id'])
+        # Set user_id in request state for activity logging
+        await set_user_id_in_request_state(request, telegram_user.get('telegram_id'))
         
         return telegram_user
     except HTTPException:
