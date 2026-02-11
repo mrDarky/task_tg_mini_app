@@ -71,12 +71,16 @@ async def get_users(
         if not telegram_id:
             raise HTTPException(status_code=403, detail="Invalid Telegram authentication")
         
-        # Telegram users can only search for themselves
+        # Telegram users can only search for themselves - prevent accessing other users via pagination
+        # If search is provided and doesn't match, reject it
         if search and search != str(telegram_id):
             raise HTTPException(status_code=403, detail="You can only search for your own user data")
         
-        # Force search to be their telegram_id
+        # Force search to be their telegram_id to prevent pagination through all users
         search = str(telegram_id)
+        # Restrict pagination for Telegram users to only their own record
+        skip = 0
+        limit = 1
     
     users = await user_service.get_users(search, status, skip, limit)
     total = await user_service.count_users(search, status)
