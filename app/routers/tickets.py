@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional, Dict, Any
 from app.models import Ticket, TicketCreate, TicketUpdate, TicketResponse, TicketResponseCreate
+from app.telegram_auth import get_telegram_user
 from database.db import db
 
 
@@ -14,11 +15,20 @@ async def list_tickets(
     assigned_to: Optional[int] = None,
     user_id: Optional[int] = None,
     page: int = 1,
-    per_page: int = 20
+    per_page: int = 20,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
 ):
     """List tickets with optional filters"""
     conditions = []
     params = []
+    
+    # If user_id is specified, verify it matches the authenticated user
+    if user_id:
+        user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (user_id,))
+        if not user or user['telegram_id'] != telegram_user['telegram_id']:
+            raise HTTPException(status_code=403, detail="Access denied")
+        conditions.append("user_id = ?")
+        params.append(user_id)
     
     if status:
         conditions.append("status = ?")
@@ -29,9 +39,6 @@ async def list_tickets(
     if assigned_to:
         conditions.append("assigned_to = ?")
         params.append(assigned_to)
-    if user_id:
-        conditions.append("user_id = ?")
-        params.append(user_id)
     
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     
@@ -67,8 +74,16 @@ async def get_ticket(ticket_id: int):
 
 
 @router.post("", response_model=Ticket)
-async def create_ticket(ticket: TicketCreate):
+async def create_ticket(
+    ticket: TicketCreate,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Create a new support ticket"""
+    # Verify the authenticated user is creating ticket for themselves
+    user = await db.fetch_one("SELECT telegram_id FROM users WHERE id = ?", (ticket.user_id,))
+    if not user or user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     query = """
         INSERT INTO tickets (user_id, subject, message, priority, status)
         VALUES (?, ?, ?, ?, 'open')

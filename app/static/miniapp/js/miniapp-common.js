@@ -44,22 +44,33 @@ const getTelegramUser = function() {
 // Fetch with error handling
 const apiRequest = async function(endpoint, options = {}) {
     try {
+        // Get Telegram initData for authentication
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        
+        // Add Telegram authentication if available
+        if (tg && tg.initData) {
+            headers['X-Telegram-Init-Data'] = tg.initData;
+        }
+        
         const response = await fetch(API_BASE + endpoint, {
             ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
+            headers: headers
         });
         
         if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Authentication required. Please open this app through Telegram.');
+            }
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         return await response.json();
     } catch (error) {
         console.error('API request failed:', error);
-        showError('Failed to load data. Please try again.');
+        showError(error.message || 'Failed to load data. Please try again.');
         return null;
     }
 };

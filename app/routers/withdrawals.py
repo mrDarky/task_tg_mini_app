@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Optional
+from fastapi import APIRouter, HTTPException, Depends
+from typing import List, Optional, Dict, Any
 from app.models import Withdrawal, WithdrawalCreate, WithdrawalUpdate
+from app.telegram_auth import get_telegram_user
 from database.db import db
 
 
@@ -52,12 +53,20 @@ async def get_withdrawal(withdrawal_id: int):
 
 
 @router.post("", response_model=Withdrawal)
-async def create_withdrawal(withdrawal: WithdrawalCreate):
+async def create_withdrawal(
+    withdrawal: WithdrawalCreate,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
     """Create a new withdrawal request"""
     # Check if user has enough stars
-    user = await db.fetch_one("SELECT stars FROM users WHERE id = ?", (withdrawal.user_id,))
+    user = await db.fetch_one("SELECT id, stars, telegram_id FROM users WHERE id = ?", (withdrawal.user_id,))
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is creating withdrawal for themselves
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
     if user['stars'] < withdrawal.amount:
         raise HTTPException(status_code=400, detail="Insufficient stars")
     
