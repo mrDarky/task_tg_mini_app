@@ -274,3 +274,31 @@ async def complete_task(
         "message": "Task completed successfully",
         "reward": task['reward']
     }
+
+
+@router.get("/{user_id}/ip-addresses", response_model=list)
+async def get_user_ip_addresses(
+    user_id: int,
+    username: str = Depends(require_auth)
+):
+    """Get all IP addresses used by a user (admin only)"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    ip_addresses = await user_service.get_user_ip_addresses(user_id)
+    return ip_addresses
+
+
+@router.get("/{user_id}/completed-tasks", response_model=list)
+async def get_user_completed_tasks(
+    user_id: int,
+    username: str = Depends(require_auth)
+):
+    """Get all completed tasks for a user with time and reward info (admin only)"""
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    completed_tasks = await user_service.get_user_completed_tasks(user_id)
+    return completed_tasks

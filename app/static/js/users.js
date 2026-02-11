@@ -28,7 +28,7 @@ function displayUsers(users) {
     const tbody = document.getElementById('users-table-body');
     
     if (users.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center">No users found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center">No users found</td></tr>';
         return;
     }
     
@@ -42,18 +42,27 @@ function displayUsers(users) {
             <td><span class="badge bg-${user.status === 'active' ? 'success' : 'danger'}">${user.status}</span></td>
             <td><span class="badge bg-info">${user.role}</span></td>
             <td><span class="badge bg-secondary">${(user.language || 'en').toUpperCase()}</span></td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="viewUserIps(${user.id})" title="View IP addresses">
+                    <i class="bi bi-hdd-network"></i>
+                </button>
+            </td>
             <td>${formatDate(user.created_at)}</td>
             <td>
                 <div class="btn-group btn-group-sm">
-                    <button class="btn btn-primary" onclick="editUser(${user.id})">
+                    <button class="btn btn-primary" onclick="editUser(${user.id})" title="Edit user">
                         <i class="bi bi-pencil"></i>
                     </button>
                     <button class="btn btn-${user.status === 'active' ? 'danger' : 'success'}" 
-                            onclick="${user.status === 'active' ? 'banUser' : 'unbanUser'}(${user.id})">
+                            onclick="${user.status === 'active' ? 'banUser' : 'unbanUser'}(${user.id})"
+                            title="${user.status === 'active' ? 'Ban user' : 'Unban user'}">
                         <i class="bi bi-${user.status === 'active' ? 'x-circle' : 'check-circle'}"></i>
                     </button>
-                    <button class="btn btn-warning" onclick="adjustStars(${user.id})">
+                    <button class="btn btn-warning" onclick="adjustStars(${user.id})" title="Adjust stars">
                         <i class="bi bi-star"></i>
+                    </button>
+                    <button class="btn btn-success" onclick="viewUserTasks(${user.id})" title="View completed tasks">
+                        <i class="bi bi-list-check"></i>
                     </button>
                 </div>
             </td>
@@ -336,3 +345,77 @@ document.addEventListener('DOMContentLoaded', () => {
         loadUsers();
     });
 });
+
+// View user IP addresses
+async function viewUserIps(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/ip-addresses`);
+        if (!response.ok) throw new Error('Failed to fetch IP addresses');
+        
+        const ips = await response.json();
+        const tbody = document.getElementById('ips-table-body');
+        
+        if (ips.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">No IP addresses recorded</td></tr>';
+        } else {
+            tbody.innerHTML = ips.map(ip => `
+                <tr>
+                    <td><code>${ip.ip_address}</code></td>
+                    <td>${formatDate(ip.first_seen)}</td>
+                    <td>${formatDate(ip.last_seen)}</td>
+                    <td><span class="badge bg-info">${ip.request_count}</span></td>
+                </tr>
+            `).join('');
+        }
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewIpsModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error fetching IP addresses:', error);
+        showAlert('Failed to fetch IP addresses', 'danger');
+    }
+}
+
+// View user completed tasks
+async function viewUserTasks(userId) {
+    try {
+        const response = await fetch(`/api/users/${userId}/completed-tasks`);
+        if (!response.ok) throw new Error('Failed to fetch completed tasks');
+        
+        const tasks = await response.json();
+        const tbody = document.getElementById('tasks-table-body');
+        
+        if (tasks.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">No completed tasks</td></tr>';
+        } else {
+            tbody.innerHTML = tasks.map(task => {
+                const startedAt = new Date(task.created_at);
+                const completedAt = new Date(task.completed_at);
+                const durationMs = completedAt - startedAt;
+                const durationMins = Math.floor(durationMs / 60000);
+                const durationSecs = Math.floor((durationMs % 60000) / 1000);
+                const duration = `${durationMins}m ${durationSecs}s`;
+                
+                return `
+                    <tr>
+                        <td>${task.task_id}</td>
+                        <td>${task.title}</td>
+                        <td><span class="badge bg-primary">${task.type}</span></td>
+                        <td><span class="badge bg-warning">${task.reward} ⭐</span></td>
+                        <td>${formatDate(task.created_at)}</td>
+                        <td>${formatDate(task.completed_at)}</td>
+                        <td><span class="badge bg-success">${duration}</span></td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('viewTasksModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error fetching completed tasks:', error);
+        showAlert('Failed to fetch completed tasks', 'danger');
+    }
+}

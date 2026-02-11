@@ -326,6 +326,43 @@ async def get_user_achievements(user_id: int) -> List[dict]:
     return [dict(row) | {'earned': bool(row['earned'])} for row in rows]
 
 
+async def get_user_ip_addresses(user_id: int) -> List[dict]:
+    """Get all IP addresses used by a user"""
+    query = """
+        SELECT 
+            ip_address,
+            first_seen,
+            last_seen,
+            request_count
+        FROM user_ip_mappings
+        WHERE user_id = ?
+        ORDER BY last_seen DESC
+    """
+    rows = await db.fetch_all(query, (user_id,))
+    return [dict(row) for row in rows]
+
+
+async def get_user_completed_tasks(user_id: int) -> List[dict]:
+    """Get all completed tasks for a user with time and reward information"""
+    query = """
+        SELECT 
+            ut.id as user_task_id,
+            ut.task_id,
+            ut.completed_at,
+            ut.created_at,
+            t.title,
+            t.description,
+            t.reward,
+            t.type
+        FROM user_tasks ut
+        JOIN tasks t ON ut.task_id = t.id
+        WHERE ut.user_id = ? AND ut.status = 'completed'
+        ORDER BY ut.completed_at DESC
+    """
+    rows = await db.fetch_all(query, (user_id,))
+    return [dict(row) for row in rows]
+
+
 async def ensure_default_achievements():
     """Ensure default achievements exist in the database"""
     # Check if achievements already exist
