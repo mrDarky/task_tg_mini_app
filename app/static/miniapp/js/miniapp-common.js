@@ -71,7 +71,7 @@ const apiRequest = async function(endpoint, options = {}) {
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             const text = await response.text();
-            if (text.trim()) {
+            if (text.length > 0) {
                 try {
                     return JSON.parse(text);
                 } catch (e) {
@@ -79,7 +79,8 @@ const apiRequest = async function(endpoint, options = {}) {
                     throw new Error('Invalid JSON response from server');
                 }
             }
-            // Empty response body with JSON content-type, return empty object
+            // Empty response body with JSON content-type, log warning and return empty object
+            console.warn('API returned empty response body with JSON content-type');
             return {};
         }
         
