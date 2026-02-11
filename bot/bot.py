@@ -82,9 +82,16 @@ async def process_referral(new_user_id: int, referral_code: str):
 async def cmd_start(message: types.Message):
     user = await user_service.get_user_by_telegram_id(message.from_user.id)
     
-    # Get or create bot info to get username
-    bot_info = await bot.get_me()
-    bot_username = bot_info.username
+    # Use bot username from settings, fallback to getting from API
+    bot_username = settings.bot_username
+    if not bot_username or bot_username == "TaskAppBot":
+        # Try to get from API if not configured
+        try:
+            bot_info = await bot.get_me()
+            bot_username = bot_info.username if bot_info and bot_info.username else 'TaskAppBot'
+        except Exception:
+            bot_username = 'TaskAppBot'
+    
     bot_username_escaped = escape_markdown(bot_username)
     
     referral_code = None
