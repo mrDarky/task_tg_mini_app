@@ -67,7 +67,26 @@ const apiRequest = async function(endpoint, options = {}) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return await response.json();
+        // Check if response has content and is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const text = await response.text();
+            if (text.trim().length > 0) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse JSON response:', e);
+                    throw new Error('Invalid JSON response from server');
+                }
+            }
+            // Empty response body with JSON content-type, log warning and return empty object
+            console.warn('API returned empty response body with JSON content-type');
+            return {};
+        }
+        
+        // Non-JSON response, log warning and return empty object
+        console.warn('API response is not JSON, content-type:', contentType);
+        return {};
     } catch (error) {
         console.error('API request failed:', error);
         showError(error.message || 'Failed to load data. Please try again.');
