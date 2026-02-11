@@ -196,8 +196,10 @@ async function handleResponseSubmit(event) {
         const response = await apiRequest(`/tickets/${ticketId}/responses`, {
             method: 'POST',
             body: JSON.stringify({
+                ticket_id: parseInt(ticketId),
                 user_id: currentUser.id,
-                message: message
+                message: message,
+                is_admin: false
             })
         });
         
