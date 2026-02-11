@@ -31,6 +31,13 @@ async def get_categories(
     include_translations: bool = Query(default=False),
     telegram_user: Dict[str, Any] = Depends(get_telegram_user)
 ):
+    """
+    List all categories.
+    
+    Note: Categories are public data visible to all authenticated Telegram users.
+    This endpoint requires authentication to ensure requests come from the mini-app,
+    but returns all categories in the system for organizing tasks.
+    """
     categories = await category_service.get_categories(parent_id, include_translations)
     return {"categories": categories}
 

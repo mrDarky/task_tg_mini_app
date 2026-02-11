@@ -94,15 +94,24 @@ def validate_telegram_init_data(init_data: str) -> Dict[str, Any]:
                 detail="Invalid user data in Telegram authentication"
             )
     
-    # Check auth_date to prevent replay attacks (optional but recommended)
+    # Check auth_date to prevent replay attacks (recommended)
     # Telegram recommends checking if auth_date is not too old
     if 'auth_date' in parsed_data:
         try:
+            import time
             auth_date = int(parsed_data['auth_date'])
-            # You can add timestamp validation here if needed
-            # For example: check if auth_date is within last 24 hours
+            current_time = int(time.time())
+            # Reject if auth_date is older than 24 hours (86400 seconds)
+            if current_time - auth_date > 86400:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Authentication data expired. Please reload the app."
+                )
         except ValueError:
-            pass
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid auth_date in Telegram authentication"
+            )
     
     return {
         'telegram_id': user_data.get('id'),

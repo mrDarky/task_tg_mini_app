@@ -40,8 +40,9 @@ def create_test_init_data(user_id: int = 123456789, username: str = "testuser", 
         'is_premium': False
     }
     
-    # Create init data
-    auth_date = '1234567890'
+    # Create init data with current timestamp
+    import time
+    auth_date = str(int(time.time()))
     data = {
         'user': json.dumps(user_data, separators=(',', ':')),
         'auth_date': auth_date,
