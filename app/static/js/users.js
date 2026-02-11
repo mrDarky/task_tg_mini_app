@@ -349,7 +349,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // View user IP addresses
 async function viewUserIps(userId) {
     try {
-        const response = await fetch(`/api/users/${userId}/ip-addresses`);
+        const response = await fetch(`/api/users/${userId}/ip-addresses`, {
+            credentials: 'include'
+        });
         if (!response.ok) throw new Error('Failed to fetch IP addresses');
         
         const ips = await response.json();
@@ -383,6 +385,20 @@ async function viewUserIps(userId) {
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'ips-modal-backdrop';
             document.body.appendChild(backdrop);
+            
+            // Add close handler to clean up backdrop
+            const closeModal = () => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                const existingBackdrop = document.getElementById('ips-modal-backdrop');
+                if (existingBackdrop) existingBackdrop.remove();
+            };
+            
+            // Attach close handlers to close buttons
+            modalEl.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(btn => {
+                btn.onclick = closeModal;
+            });
         }
     } catch (error) {
         console.error('Error fetching IP addresses:', error);
@@ -393,7 +409,9 @@ async function viewUserIps(userId) {
 // View user completed tasks
 async function viewUserTasks(userId) {
     try {
-        const response = await fetch(`/api/users/${userId}/completed-tasks`);
+        const response = await fetch(`/api/users/${userId}/completed-tasks`, {
+            credentials: 'include'
+        });
         if (!response.ok) throw new Error('Failed to fetch completed tasks');
         
         const tasks = await response.json();
@@ -439,6 +457,20 @@ async function viewUserTasks(userId) {
             backdrop.className = 'modal-backdrop fade show';
             backdrop.id = 'tasks-modal-backdrop';
             document.body.appendChild(backdrop);
+            
+            // Add close handler to clean up backdrop
+            const closeModal = () => {
+                modalEl.classList.remove('show');
+                modalEl.style.display = 'none';
+                document.body.classList.remove('modal-open');
+                const existingBackdrop = document.getElementById('tasks-modal-backdrop');
+                if (existingBackdrop) existingBackdrop.remove();
+            };
+            
+            // Attach close handlers to close buttons
+            modalEl.querySelectorAll('[data-bs-dismiss="modal"], .btn-close').forEach(btn => {
+                btn.onclick = closeModal;
+            });
         }
     } catch (error) {
         console.error('Error fetching completed tasks:', error);
