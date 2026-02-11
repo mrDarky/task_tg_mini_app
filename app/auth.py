@@ -116,6 +116,16 @@ async def get_admin_or_telegram_user(
         try:
             tg_user = validate_telegram_init_data(x_telegram_init_data)
             tg_user['auth_type'] = 'telegram'
+            
+            # Look up user in database and set user_id in request state for activity logging
+            if tg_user.get('telegram_id'):
+                user = await db.fetch_one(
+                    "SELECT id FROM users WHERE telegram_id = ?",
+                    (tg_user['telegram_id'],)
+                )
+                if user:
+                    request.state.user_id = user['id']
+            
             return tg_user
         except HTTPException:
             pass

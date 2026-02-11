@@ -14,7 +14,7 @@ import hashlib
 import json
 from typing import Optional, Dict, Any
 from urllib.parse import parse_qsl
-from fastapi import HTTPException, Header, status
+from fastapi import HTTPException, Header, status, Request
 from config.settings import settings
 
 
@@ -126,6 +126,7 @@ def validate_telegram_init_data(init_data: str) -> Dict[str, Any]:
 
 
 async def get_telegram_user(
+    request: Request,
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data")
 ) -> Dict[str, Any]:
     """
@@ -135,6 +136,7 @@ async def get_telegram_user(
     comes from a legitimate Telegram user.
     
     Args:
+        request: FastAPI request object
         x_telegram_init_data: The initData from Telegram Web App sent in header
         
     Returns:
@@ -159,10 +161,23 @@ async def get_telegram_user(
             detail="Telegram authentication required. Please access this API through the Telegram Mini App."
         )
     
-    return validate_telegram_init_data(x_telegram_init_data)
+    telegram_user = validate_telegram_init_data(x_telegram_init_data)
+    
+    # Look up user in database and set user_id in request state for activity logging
+    if telegram_user.get('telegram_id'):
+        from database.db import db
+        user = await db.fetch_one(
+            "SELECT id FROM users WHERE telegram_id = ?",
+            (telegram_user['telegram_id'],)
+        )
+        if user:
+            request.state.user_id = user['id']
+    
+    return telegram_user
 
 
 async def get_telegram_user_optional(
+    request: Request,
     x_telegram_init_data: Optional[str] = Header(None, alias="X-Telegram-Init-Data")
 ) -> Optional[Dict[str, Any]]:
     """
@@ -173,6 +188,7 @@ async def get_telegram_user_optional(
     work both with and without authentication.
     
     Args:
+        request: FastAPI request object
         x_telegram_init_data: The initData from Telegram Web App sent in header
         
     Returns:
@@ -185,6 +201,18 @@ async def get_telegram_user_optional(
         return None
     
     try:
-        return validate_telegram_init_data(x_telegram_init_data)
+        telegram_user = validate_telegram_init_data(x_telegram_init_data)
+        
+        # Look up user in database and set user_id in request state for activity logging
+        if telegram_user.get('telegram_id'):
+            from database.db import db
+            user = await db.fetch_one(
+                "SELECT id FROM users WHERE telegram_id = ?",
+                (telegram_user['telegram_id'],)
+            )
+            if user:
+                request.state.user_id = user['id']
+        
+        return telegram_user
     except HTTPException:
         return None
