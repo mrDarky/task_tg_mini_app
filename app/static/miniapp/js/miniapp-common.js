@@ -79,9 +79,12 @@ const apiRequest = async function(endpoint, options = {}) {
                     throw new Error('Invalid JSON response from server');
                 }
             }
+            // Empty response body with JSON content-type, return empty object
+            return {};
         }
         
-        // Return empty object if no content
+        // Non-JSON response, log warning and return empty object
+        console.warn('API response is not JSON, content-type:', contentType);
         return {};
     } catch (error) {
         console.error('API request failed:', error);
