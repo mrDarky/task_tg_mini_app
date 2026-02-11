@@ -240,3 +240,39 @@ async def get_user_achievements(
     
     achievements = await user_service.get_user_achievements(user_id)
     return achievements
+
+
+@router.post("/{user_id}/complete-task/{task_id}", response_model=dict)
+async def complete_task(
+    user_id: int,
+    task_id: int,
+    telegram_user: Dict[str, Any] = Depends(get_telegram_user)
+):
+    """Complete a task for a user"""
+    from app.services import task_service
+    
+    user = await user_service.get_user(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Verify the authenticated user is completing their own task
+    if user['telegram_id'] != telegram_user['telegram_id']:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Check if task exists
+    task = await task_service.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Check if task is active
+    if task.get('status') != 'active':
+        raise HTTPException(status_code=400, detail="Task is not active")
+    
+    # Complete the task
+    await task_service.complete_task(user_id, task_id)
+    
+    return {
+        "success": True,
+        "message": "Task completed successfully",
+        "reward": task['reward']
+    }

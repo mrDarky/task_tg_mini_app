@@ -31,6 +31,11 @@ async function loadTaskDetail() {
         return;
     }
     
+    // Check if task is already completed
+    const userTasks = await apiRequest(`/users/${currentUser.id}/tasks?status=completed`);
+    const isCompleted = userTasks && userTasks.some(ut => ut.task_id === taskId);
+    currentTask.isCompleted = isCompleted;
+    
     displayTaskDetails();
     loadRelatedTasks();
 }
@@ -45,6 +50,17 @@ function displayTaskDetails() {
     // Set task link
     const taskLink = document.getElementById('openTaskBtn');
     taskLink.href = currentTask.url || '#';
+    
+    // Hide complete button if task is already completed
+    const completeBtn = document.getElementById('completeBtn');
+    if (currentTask.isCompleted) {
+        completeBtn.style.display = 'none';
+        // Show completed message
+        const completedMessage = document.createElement('div');
+        completedMessage.className = 'alert alert-success';
+        completedMessage.innerHTML = '<i class="bi bi-check-circle-fill"></i> Task already completed!';
+        completeBtn.parentElement.appendChild(completedMessage);
+    }
     
     // Display instructions
     displayInstructions();
