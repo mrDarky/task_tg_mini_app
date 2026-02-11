@@ -67,7 +67,22 @@ const apiRequest = async function(endpoint, options = {}) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         
-        return await response.json();
+        // Check if response has content and is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const text = await response.text();
+            if (text.trim()) {
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    console.error('Failed to parse JSON response:', e);
+                    throw new Error('Invalid JSON response from server');
+                }
+            }
+        }
+        
+        // Return empty object if no content
+        return {};
     } catch (error) {
         console.error('API request failed:', error);
         showError(error.message || 'Failed to load data. Please try again.');
