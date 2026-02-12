@@ -68,6 +68,8 @@ class Database:
                 status TEXT DEFAULT 'active',
                 category_id INTEGER,
                 completion_limit INTEGER DEFAULT 0,
+                channel_id TEXT,
+                verification_method TEXT DEFAULT 'manual',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (category_id) REFERENCES categories (id) ON DELETE SET NULL
@@ -97,6 +99,8 @@ class Database:
                 task_id INTEGER NOT NULL,
                 status TEXT DEFAULT 'pending',
                 completed_at TIMESTAMP,
+                verified_at TIMESTAMP,
+                verification_method TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
                 FOREIGN KEY (task_id) REFERENCES tasks (id) ON DELETE CASCADE,
@@ -550,6 +554,32 @@ class Database:
                 "INSERT INTO translations (language_id, key, value, category) VALUES (?, ?, ?, ?)",
                 (ru_lang['id'], key, value, category)
             )
+    
+    async def migrate_schema(self):
+        """Run schema migrations for existing databases"""
+        # Check and add channel_id column to tasks if not exists
+        cursor = await self.connection.execute("PRAGMA table_info(tasks)")
+        columns = await cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        if 'channel_id' not in column_names:
+            await self.connection.execute("ALTER TABLE tasks ADD COLUMN channel_id TEXT")
+        
+        if 'verification_method' not in column_names:
+            await self.connection.execute("ALTER TABLE tasks ADD COLUMN verification_method TEXT DEFAULT 'manual'")
+        
+        # Check and add new columns to user_tasks if not exists
+        cursor = await self.connection.execute("PRAGMA table_info(user_tasks)")
+        columns = await cursor.fetchall()
+        column_names = [col[1] for col in columns]
+        
+        if 'verified_at' not in column_names:
+            await self.connection.execute("ALTER TABLE user_tasks ADD COLUMN verified_at TIMESTAMP")
+        
+        if 'verification_method' not in column_names:
+            await self.connection.execute("ALTER TABLE user_tasks ADD COLUMN verification_method TEXT")
+        
+        await self.connection.commit()
 
 
 db = Database()

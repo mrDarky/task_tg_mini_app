@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
-from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs, activity
+from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs, activity, approvals
 from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
 from app.services.logger_service import log_error
 from app.middleware import ActivityLoggingMiddleware
@@ -16,6 +16,7 @@ import traceback
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await db.connect()
+    await db.migrate_schema()
     yield
     await db.disconnect()
 
@@ -80,6 +81,7 @@ app.include_router(reports.router)
 app.include_router(languages.router)
 app.include_router(logs.router)
 app.include_router(activity.router)
+app.include_router(approvals.router)
 
 
 @app.get("/", response_class=HTMLResponse)
