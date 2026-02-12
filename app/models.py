@@ -79,6 +79,8 @@ class TaskBase(BaseModel):
     status: Literal['active', 'inactive', 'completed'] = 'active'
     category_id: Optional[int] = None
     completion_limit: int = 0
+    channel_id: Optional[str] = None
+    verification_method: Literal['auto', 'manual'] = 'manual'
 
 
 class TaskCreate(TaskBase):
@@ -94,6 +96,8 @@ class TaskUpdate(BaseModel):
     status: Optional[Literal['active', 'inactive', 'completed']] = None
     category_id: Optional[int] = None
     completion_limit: Optional[int] = None
+    channel_id: Optional[str] = None
+    verification_method: Optional[Literal['auto', 'manual']] = None
     translations: Optional[List[TaskTranslation]] = None
 
 
@@ -120,6 +124,8 @@ class UserTaskCreate(UserTaskBase):
 class UserTask(UserTaskBase):
     id: int
     completed_at: Optional[datetime] = None
+    verified_at: Optional[datetime] = None
+    verification_method: Optional[str] = None
     created_at: datetime
     
     class Config:
@@ -448,6 +454,32 @@ class TaskSubmission(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# Task approval models (for admin panel)
+class TaskApprovalItem(BaseModel):
+    """Detailed approval item with user and task info"""
+    id: int
+    user_id: int
+    username: Optional[str] = None
+    telegram_id: int
+    task_id: int
+    task_title: str
+    task_type: str
+    task_reward: int
+    submission_type: str
+    file_id: Optional[str] = None
+    file_path: Optional[str] = None
+    status: Literal['pending', 'approved', 'rejected']
+    admin_notes: Optional[str] = None
+    submitted_at: datetime
+    reviewed_at: Optional[datetime] = None
+
+
+class TaskApprovalUpdate(BaseModel):
+    """Model for approving or rejecting task submissions"""
+    status: Literal['approved', 'rejected']
+    admin_notes: Optional[str] = None
 
 
 # Language models

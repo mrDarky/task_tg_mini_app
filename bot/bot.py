@@ -1,6 +1,7 @@
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from config.settings import settings
 from database.db import db
 from app.services import user_service, task_service, category_service
@@ -9,7 +10,7 @@ from bot.i18n import t
 import asyncio
 import logging
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -79,6 +80,37 @@ async def process_referral(new_user_id: int, referral_code: str):
             
             return referrer['id'], referral_bonus
     return None, 0
+
+
+async def check_bot_is_admin(channel_id: str) -> bool:
+    """Check if bot is admin in the specified channel"""
+    try:
+        # Get bot's member status in the channel
+        member = await bot.get_chat_member(channel_id, bot.id)
+        # Check if bot is admin or creator
+        return member.status in ['administrator', 'creator']
+    except (TelegramBadRequest, TelegramForbiddenError) as e:
+        logger.warning(f"Could not check bot admin status in channel {channel_id}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Error checking bot admin status: {e}")
+        return False
+
+
+async def verify_user_channel_membership(user_id: int, channel_id: str) -> bool:
+    """Verify if user is a member of the specified channel"""
+    try:
+        # Get user's member status in the channel
+        member = await bot.get_chat_member(channel_id, user_id)
+        # User is considered a member if they're not left or kicked
+        return member.status in ['member', 'administrator', 'creator']
+    except (TelegramBadRequest, TelegramForbiddenError) as e:
+        logger.warning(f"Could not verify user {user_id} membership in channel {channel_id}: {e}")
+        return False
+    except Exception as e:
+        logger.error(f"Error verifying channel membership: {e}")
+        return False
+
 
 
 @dp.message(Command("start"))
@@ -573,14 +605,50 @@ async def show_task_detail(callback: types.CallbackQuery):
         await callback.answer("Task not found", show_alert=True)
         return
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🔗 Open Link", url=task['url'] or "https://example.com")],
-        [InlineKeyboardButton(text="✅ Submit Completion", callback_data=f"submit_task_{task_id}")],
-        [InlineKeyboardButton(text="🔙 Back", callback_data="view_tasks")]
-    ])
+    # Build keyboard based on task type and verification method
+    keyboard_buttons = []
+    
+    # Add Quick Join button for subscribe tasks
+    if task['type'] == 'subscribe' and task['url']:
+        keyboard_buttons.append([InlineKeyboardButton(text="⚡ Quick Join", url=task['url'])])
+    
+    # Add Open Link button for other tasks
+    if task['url'] and task['type'] != 'subscribe':
+        keyboard_buttons.append([InlineKeyboardButton(text="🔗 Open Link", url=task['url'])])
+    
+    # Add Submit Completion button
+    keyboard_buttons.append([InlineKeyboardButton(text="✅ Submit Completion", callback_data=f"submit_task_{task_id}")])
+    
+    # Add Back button
+    keyboard_buttons.append([InlineKeyboardButton(text="🔙 Back", callback_data="view_tasks")])
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     
     title_display = escape_markdown(task['title']) if task['title'] else 'Task'
     description_display = escape_markdown(task['description']) if task['description'] else 'Complete the task and submit for verification.'
+    
+    # Customize instructions based on task type and verification method
+    verification_info = ""
+    if task['type'] == 'subscribe':
+        if task.get('verification_method') == 'auto' and task.get('channel_id'):
+            verification_info = "\n✓ *Auto-verification enabled* - instant reward!"
+        else:
+            verification_info = "\n⚠️ *Manual verification required* - submit screenshot"
+    
+    steps_text = ""
+    if task['type'] == 'subscribe':
+        steps_text = (
+            f"1. Click 'Quick Join' to join the channel\n"
+            f"2. Click 'Submit Completion' to verify{verification_info}\n"
+            f"3. Receive your reward!"
+        )
+    else:
+        steps_text = (
+            f"1. Click 'Open Link' to access the task\n"
+            f"2. Complete the required action\n"
+            f"3. Take a screenshot (if required)\n"
+            f"4. Click 'Submit Completion'"
+        )
     
     await callback.message.answer(
         f"📋 *Task Details*\n\n"
@@ -588,11 +656,7 @@ async def show_task_detail(callback: types.CallbackQuery):
         f"*Type:* {task['type'].title()}\n"
         f"*Reward:* {task['reward']} ⭐\n\n"
         f"*Instructions:*\n{description_display}\n\n"
-        f"*Steps:*\n"
-        f"1. Click 'Open Link' to access the task\n"
-        f"2. Complete the required action\n"
-        f"3. Take a screenshot (if required)\n"
-        f"4. Click 'Submit Completion'",
+        f"*Steps:*\n{steps_text}",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -613,8 +677,65 @@ async def submit_task(callback: types.CallbackQuery):
         await callback.answer("Task not available", show_alert=True)
         return
     
-    # Check if task requires verification
-    if task['type'] in ['youtube', 'tiktok']:
+    # Check if task is subscribe type and has channel_id for auto-verification
+    if task['type'] == 'subscribe' and task.get('channel_id') and task.get('verification_method') == 'auto':
+        # Try bot-based verification
+        is_bot_admin = await check_bot_is_admin(task['channel_id'])
+        
+        if is_bot_admin:
+            # Bot is admin, verify user membership
+            is_member = await verify_user_channel_membership(callback.from_user.id, task['channel_id'])
+            
+            if is_member:
+                # User is verified as member, complete task automatically
+                await task_service.complete_task(user['id'], task_id)
+                
+                # Update user_task with verification info
+                await db.execute(
+                    """UPDATE user_tasks 
+                    SET verified_at = ?, verification_method = 'auto'
+                    WHERE user_id = ? AND task_id = ?""",
+                    (datetime.now(timezone.utc).isoformat(), user['id'], task_id)
+                )
+                
+                updated_user = await user_service.get_user(user['id'])
+                await callback.message.answer(
+                    f"✅ *Task completed!*\n\n"
+                    f"✓ Channel membership verified\n"
+                    f"You earned {task['reward']} ⭐\n"
+                    f"Total stars: {updated_user['stars']} ⭐",
+                    parse_mode="Markdown"
+                )
+                await callback.answer("Verified and completed!", show_alert=True)
+                return
+            else:
+                await callback.message.answer(
+                    "❌ *Verification Failed*\n\n"
+                    "You haven't joined the channel yet.\n"
+                    "Please use the 'Quick Join' button to join the channel first, then try again.",
+                    parse_mode="Markdown"
+                )
+                await callback.answer("Please join the channel first", show_alert=True)
+                return
+        else:
+            # Bot is not admin, fall back to manual verification
+            await callback.message.answer(
+                "⚠️ *Manual Verification Required*\n\n"
+                "Automatic verification is not available.\n"
+                "Please send a screenshot showing you've joined the channel.\n"
+                "An admin will review your submission.",
+                parse_mode="Markdown"
+            )
+            # Create pending submission
+            await db.execute(
+                "INSERT OR REPLACE INTO task_submissions (user_id, task_id, status) VALUES (?, ?, 'pending')",
+                (user['id'], task_id)
+            )
+            await callback.answer("Please send a screenshot")
+            return
+    
+    # Check if task requires verification (youtube, tiktok, or subscribe without auto-verification)
+    if task['type'] in ['youtube', 'tiktok'] or (task['type'] == 'subscribe' and task.get('verification_method') != 'auto'):
         await callback.message.answer(
             "📸 *Task Submission*\n\n"
             "Please send a screenshot of the completed task.\n"
