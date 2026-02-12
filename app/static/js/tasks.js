@@ -189,17 +189,28 @@ async function createTask() {
     const translations = getTranslationsFromInputs('create-translations-container');
     
     const categoryId = document.getElementById('create-category').value;
+    const taskType = document.getElementById('create-type').value;
     
     const data = {
         title: document.getElementById('create-title').value,
         description: document.getElementById('create-description').value,
-        type: document.getElementById('create-type').value,
+        type: taskType,
         url: document.getElementById('create-url').value,
         reward: parseInt(document.getElementById('create-reward').value),
         status: 'active',
         category_id: categoryId ? parseInt(categoryId) : null,
         translations: translations.length > 0 ? translations : undefined
     };
+    
+    // Add channel_id and verification_method for subscribe tasks
+    if (taskType === 'subscribe') {
+        const channelId = document.getElementById('create-channel-id').value;
+        const verificationMethod = document.getElementById('create-verification-method').value;
+        if (channelId) {
+            data.channel_id = channelId;
+        }
+        data.verification_method = verificationMethod;
+    }
     
     try {
         const response = await fetch('/api/tasks/', {
@@ -236,6 +247,15 @@ async function editTask(taskId) {
         document.getElementById('edit-status').value = task.status;
         document.getElementById('edit-category').value = task.category_id || '';
         
+        // Show/hide channel fields based on task type
+        toggleChannelFields('edit', task.type);
+        
+        // Set channel fields if subscribe task
+        if (task.type === 'subscribe') {
+            document.getElementById('edit-channel-id').value = task.channel_id || '';
+            document.getElementById('edit-verification-method').value = task.verification_method || 'manual';
+        }
+        
         // Render translation inputs with existing translations
         renderTranslationInputs('edit-translations-container', task.translations || []);
         
@@ -252,17 +272,28 @@ async function saveTask() {
     const translations = getTranslationsFromInputs('edit-translations-container');
     
     const categoryId = document.getElementById('edit-category').value;
+    const taskType = document.getElementById('edit-type').value;
     
     const data = {
         title: document.getElementById('edit-title').value,
         description: document.getElementById('edit-description').value,
-        type: document.getElementById('edit-type').value,
+        type: taskType,
         url: document.getElementById('edit-url').value,
         reward: parseInt(document.getElementById('edit-reward').value),
         status: document.getElementById('edit-status').value,
         category_id: categoryId ? parseInt(categoryId) : null,
         translations: translations.length > 0 ? translations : undefined
     };
+    
+    // Add channel_id and verification_method for subscribe tasks
+    if (taskType === 'subscribe') {
+        const channelId = document.getElementById('edit-channel-id').value;
+        const verificationMethod = document.getElementById('edit-verification-method').value;
+        if (channelId) {
+            data.channel_id = channelId;
+        }
+        data.verification_method = verificationMethod;
+    }
     
     try {
         const response = await fetch(`/api/tasks/${taskId}`, {
@@ -343,6 +374,20 @@ async function bulkUpdateStatus(status) {
     }
 }
 
+// Toggle channel-specific fields based on task type
+function toggleChannelFields(prefix, taskType) {
+    const channelSection = document.getElementById(`${prefix}-channel-section`);
+    const verificationSection = document.getElementById(`${prefix}-verification-section`);
+    
+    if (taskType === 'subscribe') {
+        channelSection.style.display = 'block';
+        verificationSection.style.display = 'block';
+    } else {
+        channelSection.style.display = 'none';
+        verificationSection.style.display = 'none';
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', async () => {
     // Load languages and categories first
@@ -351,6 +396,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Then load tasks
     loadTasks();
+    
+    // Add event listeners for task type change
+    document.getElementById('create-type').addEventListener('change', (e) => {
+        toggleChannelFields('create', e.target.value);
+    });
+    
+    document.getElementById('edit-type').addEventListener('change', (e) => {
+        toggleChannelFields('edit', e.target.value);
+    });
     
     document.getElementById('search-btn').addEventListener('click', () => {
         currentSearch = document.getElementById('search-input').value;

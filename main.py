@@ -216,6 +216,11 @@ async def admin_activity(request: Request, username: str = Depends(require_auth)
     return templates.TemplateResponse("activity_monitor.html", {"request": request, "username": username})
 
 
+@app.get("/admin/approvals", response_class=HTMLResponse)
+async def admin_approvals(request: Request, username: str = Depends(require_auth)):
+    return templates.TemplateResponse("approvals.html", {"request": request, "username": username})
+
+
 @app.get("/admin/translations/{language_id}", response_class=HTMLResponse)
 async def admin_translations(request: Request, language_id: int, username: str = Depends(require_auth)):
     return templates.TemplateResponse("translations.html", {"request": request, "language_id": language_id, "username": username})

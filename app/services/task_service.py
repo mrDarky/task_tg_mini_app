@@ -5,12 +5,13 @@ from typing import Optional, List
 
 async def create_task(task: TaskCreate) -> int:
     query = """
-        INSERT INTO tasks (title, description, type, url, reward, status, category_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO tasks (title, description, type, url, reward, status, category_id, channel_id, verification_method, completion_limit)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
     cursor = await db.execute(query, (
         task.title, task.description, task.type, task.url, 
-        task.reward, task.status, task.category_id
+        task.reward, task.status, task.category_id,
+        task.channel_id, task.verification_method, task.completion_limit
     ))
     task_id = cursor.lastrowid
     

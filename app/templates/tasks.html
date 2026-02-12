@@ -118,6 +118,19 @@
                         <label for="create-reward" class="form-label">Reward (Stars)</label>
                         <input type="number" class="form-control" id="create-reward" value="10" required>
                     </div>
+                    <div class="mb-3" id="create-channel-section" style="display: none;">
+                        <label for="create-channel-id" class="form-label">Channel ID (for auto-verification)</label>
+                        <input type="text" class="form-control" id="create-channel-id" placeholder="@channelname or -100123456789">
+                        <small class="form-text text-muted">Required for automatic verification. Bot must be admin in the channel.</small>
+                    </div>
+                    <div class="mb-3" id="create-verification-section" style="display: none;">
+                        <label for="create-verification-method" class="form-label">Verification Method</label>
+                        <select class="form-select" id="create-verification-method">
+                            <option value="manual">Manual (requires admin approval)</option>
+                            <option value="auto">Auto (bot verifies membership)</option>
+                        </select>
+                        <small class="form-text text-muted">Auto-verification requires Channel ID and bot admin access.</small>
+                    </div>
                     <hr>
                     <div class="mb-3">
                         <label class="form-label">Translations (Optional)</label>
@@ -174,6 +187,19 @@
                     <div class="mb-3">
                         <label for="edit-reward" class="form-label">Reward (Stars)</label>
                         <input type="number" class="form-control" id="edit-reward">
+                    </div>
+                    <div class="mb-3" id="edit-channel-section" style="display: none;">
+                        <label for="edit-channel-id" class="form-label">Channel ID (for auto-verification)</label>
+                        <input type="text" class="form-control" id="edit-channel-id" placeholder="@channelname or -100123456789">
+                        <small class="form-text text-muted">Required for automatic verification. Bot must be admin in the channel.</small>
+                    </div>
+                    <div class="mb-3" id="edit-verification-section" style="display: none;">
+                        <label for="edit-verification-method" class="form-label">Verification Method</label>
+                        <select class="form-select" id="edit-verification-method">
+                            <option value="manual">Manual (requires admin approval)</option>
+                            <option value="auto">Auto (bot verifies membership)</option>
+                        </select>
+                        <small class="form-text text-muted">Auto-verification requires Channel ID and bot admin access.</small>
                     </div>
                     <div class="mb-3">
                         <label for="edit-status" class="form-label">Status</label>
