@@ -10,7 +10,7 @@ from bot.i18n import t
 import asyncio
 import logging
 import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -695,7 +695,7 @@ async def submit_task(callback: types.CallbackQuery):
                     """UPDATE user_tasks 
                     SET verified_at = ?, verification_method = 'auto'
                     WHERE user_id = ? AND task_id = ?""",
-                    (datetime.now().isoformat(), user['id'], task_id)
+                    (datetime.now(timezone.utc).isoformat(), user['id'], task_id)
                 )
                 
                 updated_user = await user_service.get_user(user['id'])

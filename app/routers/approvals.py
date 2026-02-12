@@ -3,9 +3,9 @@ from app.models import TaskApprovalItem, TaskApprovalUpdate
 from app.auth import require_auth
 from typing import Optional, List
 from database.db import db
-from datetime import datetime
+from datetime import datetime, timezone
 
-router = APIRouter(prefix="/api/approvals", tags=["approvals"])
+router = APIRouter(prefix="/api/approvals", tags=["approvals"], dependencies=[Depends(require_auth)])
 
 
 @router.get("/", response_model=dict)
@@ -14,8 +14,7 @@ async def get_task_approvals(
     task_type: Optional[str] = Query(None, description="Filter by task type"),
     user_id: Optional[int] = Query(None, description="Filter by user ID"),
     skip: int = Query(0, ge=0),
-    limit: int = Query(50, ge=1, le=100),
-    username: str = Depends(require_auth)
+    limit: int = Query(50, ge=1, le=100)
 ):
     """
     Get list of task submissions for approval/review
@@ -95,10 +94,7 @@ async def get_task_approvals(
 
 
 @router.get("/{submission_id}", response_model=dict)
-async def get_approval_detail(
-    submission_id: int,
-    username: str = Depends(require_auth)
-):
+async def get_approval_detail(submission_id: int):
     """
     Get detailed information about a specific submission
     """
@@ -164,7 +160,7 @@ async def approve_submission(
         """UPDATE task_submissions 
         SET status = ?, admin_notes = ?, reviewed_at = ?
         WHERE id = ?""",
-        (approval_data.status, approval_data.admin_notes, datetime.now().isoformat(), submission_id)
+        (approval_data.status, approval_data.admin_notes, datetime.now(timezone.utc).isoformat(), submission_id)
     )
     
     # If approved, complete the task and award stars
@@ -174,12 +170,12 @@ async def approve_submission(
         
         if task:
             # Mark task as completed in user_tasks
+            now = datetime.now(timezone.utc).isoformat()
             await db.execute(
                 """INSERT OR REPLACE INTO user_tasks 
                 (user_id, task_id, status, completed_at, verified_at, verification_method)
                 VALUES (?, ?, 'completed', ?, ?, 'manual')""",
-                (submission['user_id'], submission['task_id'], 
-                 datetime.now().isoformat(), datetime.now().isoformat())
+                (submission['user_id'], submission['task_id'], now, now)
             )
             
             # Award stars
@@ -213,7 +209,7 @@ async def approve_submission(
 
 
 @router.get("/stats/summary", response_model=dict)
-async def get_approval_stats(username: str = Depends(require_auth)):
+async def get_approval_stats():
     """
     Get summary statistics for task approvals
     """

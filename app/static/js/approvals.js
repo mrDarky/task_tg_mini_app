@@ -3,6 +3,17 @@ let currentPage = 0;
 let currentLimit = 20;
 let currentSubmissionId = null;
 
+// Show notification (using Bootstrap's alert or a toast if available)
+function showNotification(message, type = 'success') {
+    // Try to use existing showAlert function from main.js
+    if (typeof showAlert === 'function') {
+        showAlert(message, type);
+    } else {
+        // Fallback to simple alert for now
+        alert(message);
+    }
+}
+
 // Load approvals on page load
 document.addEventListener('DOMContentLoaded', function() {
     loadStats();
@@ -208,7 +219,7 @@ async function viewSubmission(submissionId) {
         
     } catch (error) {
         console.error('Error loading submission details:', error);
-        alert('Failed to load submission details');
+        showNotification('Failed to load submission details', 'danger');
     }
 }
 
@@ -218,13 +229,9 @@ async function processSubmission(status) {
     
     const adminNotes = document.getElementById('adminNotes')?.value || '';
     
-    // Get current admin user ID (you may need to adjust this based on your auth system)
-    const adminUserId = 1; // Default to 1, should be fetched from session
-    
     const data = {
         status: status,
-        admin_notes: adminNotes,
-        admin_id: adminUserId
+        admin_notes: adminNotes
     };
     
     try {
@@ -244,7 +251,7 @@ async function processSubmission(status) {
         const result = await response.json();
         
         // Show success message
-        alert(`Submission ${status} successfully!`);
+        showNotification(`Submission ${status} successfully!`, 'success');
         
         // Close modal
         const modal = bootstrap.Modal.getInstance(document.getElementById('approvalModal'));
@@ -256,7 +263,7 @@ async function processSubmission(status) {
         
     } catch (error) {
         console.error('Error processing submission:', error);
-        alert(`Failed to ${status} submission: ${error.message}`);
+        showNotification(`Failed to ${status} submission: ${error.message}`, 'danger');
     }
 }
 

@@ -480,7 +480,6 @@ class TaskApprovalUpdate(BaseModel):
     """Model for approving or rejecting task submissions"""
     status: Literal['approved', 'rejected']
     admin_notes: Optional[str] = None
-    admin_id: int
 
 
 # Language models
