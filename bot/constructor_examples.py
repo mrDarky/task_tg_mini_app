@@ -5,7 +5,7 @@ This file demonstrates how to use the Bot Message & Button Constructor
 in various scenarios within the Telegram bot.
 """
 
-from aiogram import Bot, Dispatcher, types, F
+from aiogram import Dispatcher, types, F
 from aiogram.filters import Command
 from bot.constructor import messages, buttons, keyboards
 

@@ -241,6 +241,8 @@ def test_keyboard_constructors():
     # Test task detail keyboard
     task_detail_kb = keyboards.task_detail_keyboard(123, 'en')
     assert len(task_detail_kb.inline_keyboard) >= 2
+    # Verify correct task_id is in callback_data
+    assert task_detail_kb.inline_keyboard[0][0].callback_data == "complete_123"
     print("  ✓ task_detail_keyboard")
     
     # Test profile keyboard
