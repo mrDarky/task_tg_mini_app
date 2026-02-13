@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 from database.db import db
-from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs, activity, approvals
+from app.routers import users, tasks, categories, analytics, settings, withdrawals, notifications, tickets, moderation, reports, languages, logs, activity, approvals, bot_constructor
 from app.auth import authenticate_user, session_manager, get_current_user, require_auth, update_password, AuthenticationError
 from app.services.logger_service import log_error
 from app.middleware import ActivityLoggingMiddleware
@@ -82,6 +82,7 @@ app.include_router(languages.router)
 app.include_router(logs.router)
 app.include_router(activity.router)
 app.include_router(approvals.router)
+app.include_router(bot_constructor.router)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -224,6 +225,11 @@ async def admin_approvals(request: Request, username: str = Depends(require_auth
 @app.get("/admin/translations/{language_id}", response_class=HTMLResponse)
 async def admin_translations(request: Request, language_id: int, username: str = Depends(require_auth)):
     return templates.TemplateResponse("translations.html", {"request": request, "language_id": language_id, "username": username})
+
+
+@app.get("/admin/bot-constructor", response_class=HTMLResponse)
+async def admin_bot_constructor(request: Request, username: str = Depends(require_auth)):
+    return templates.TemplateResponse("bot_constructor.html", {"request": request, "username": username})
 
 
 # Mini-app routes

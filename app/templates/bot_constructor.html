@@ -1,0 +1,792 @@
+{% extends "base.html" %}
+
+{% block title %}Bot Constructor - Admin Panel{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="mb-3">Bot Message & Button Constructor</h1>
+        <p class="text-muted">Design bot conversation flows with messages and interactive buttons</p>
+    </div>
+</div>
+
+<div class="row">
+    <!-- States List -->
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Bot States</h5>
+                <button class="btn btn-sm btn-primary" onclick="showCreateStateModal()">
+                    <i class="bi bi-plus"></i>
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div id="states-list" class="list-group list-group-flush">
+                    <div class="text-center py-3 text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">Available Variables</h6>
+            </div>
+            <div class="card-body">
+                <div id="variables-list" class="small">
+                    <div class="text-muted">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- State Editor -->
+    <div class="col-md-9">
+        <div id="no-state-selected" class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-chat-dots display-1 text-muted"></i>
+                <p class="text-muted mt-3">Select a state from the list or create a new one</p>
+            </div>
+        </div>
+        
+        <div id="state-editor" class="card" style="display: none;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0" id="state-name-display">State Name</h5>
+                    <small class="text-muted" id="state-key-display">state_key</small>
+                </div>
+                <div>
+                    <button class="btn btn-sm btn-danger" onclick="deleteCurrentState()">
+                        <i class="bi bi-trash"></i> Delete State
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- State Info -->
+                <div class="mb-4">
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="is-start-state" onchange="updateStateField('is_start_state', this.checked)">
+                        <label class="form-check-label" for="is-start-state">
+                            <strong>Start State</strong> (shown when user types /start)
+                        </label>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">State Key</label>
+                        <input type="text" class="form-control" id="state-key-input" 
+                               onchange="updateStateField('state_key', this.value)" 
+                               placeholder="e.g., main_menu, help_menu">
+                        <small class="text-muted">Unique identifier for this state</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Display Name</label>
+                        <input type="text" class="form-control" id="state-name-input" 
+                               onchange="updateStateField('name', this.value)"
+                               placeholder="e.g., Main Menu, Help Screen">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Message Text</label>
+                        <textarea class="form-control" id="message-text-input" rows="5"
+                                  onchange="updateStateField('message_text', this.value)"
+                                  placeholder="Enter message text here. You can use variables like {username}, {stars_count}, etc."></textarea>
+                        <small class="text-muted">Use variables like {username}, {stars_count}, {first_name}, etc.</small>
+                    </div>
+                </div>
+                
+                <!-- Message Preview -->
+                <div class="mb-4">
+                    <h6>Message Preview</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <div id="message-preview" class="text-pre-wrap">No message yet...</div>
+                    </div>
+                </div>
+                
+                <!-- Buttons Section -->
+                <div class="mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Buttons</h6>
+                        <button class="btn btn-sm btn-success" onclick="showCreateButtonModal()">
+                            <i class="bi bi-plus"></i> Add Button
+                        </button>
+                    </div>
+                    
+                    <div id="buttons-container">
+                        <p class="text-muted">No buttons yet. Add buttons to make this state interactive.</p>
+                    </div>
+                </div>
+                
+                <!-- Button Layout Preview -->
+                <div>
+                    <h6>Button Layout Preview</h6>
+                    <div class="border rounded p-3 bg-light">
+                        <div id="button-layout-preview">
+                            <p class="text-muted small">No buttons to preview</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create State Modal -->
+<div class="modal fade" id="createStateModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Create New Bot State</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">State Key</label>
+                    <input type="text" class="form-control" id="new-state-key" 
+                           placeholder="e.g., main_menu">
+                    <small class="text-muted">Unique identifier (no spaces)</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Display Name</label>
+                    <input type="text" class="form-control" id="new-state-name" 
+                           placeholder="e.g., Main Menu">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Message Text</label>
+                    <textarea class="form-control" id="new-state-message" rows="4"
+                              placeholder="Enter the message text..."></textarea>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="new-state-is-start">
+                    <label class="form-check-label" for="new-state-is-start">
+                        Set as start state
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createState()">Create State</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Button Modal -->
+<div class="modal fade" id="createButtonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Button</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Button Text</label>
+                    <input type="text" class="form-control" id="new-button-text" 
+                           placeholder="e.g., View Tasks">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Button Type</label>
+                    <select class="form-select" id="new-button-type" onchange="updateButtonTypeFields()">
+                        <option value="callback">Callback (Navigate to State)</option>
+                        <option value="url">URL Link</option>
+                        <option value="web_app">Web App</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="callback-field">
+                    <label class="form-label">Target State</label>
+                    <select class="form-select" id="new-button-target-state">
+                        <option value="">-- Select State --</option>
+                    </select>
+                    <small class="text-muted">Which state to navigate to when clicked</small>
+                </div>
+                
+                <div class="mb-3" id="url-field" style="display: none;">
+                    <label class="form-label">URL</label>
+                    <input type="text" class="form-control" id="new-button-url" 
+                           placeholder="https://example.com">
+                </div>
+                
+                <div class="mb-3" id="webapp-field" style="display: none;">
+                    <label class="form-label">Web App URL</label>
+                    <input type="text" class="form-control" id="new-button-webapp" 
+                           placeholder="https://example.com/miniapp">
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">Row Position</label>
+                        <input type="number" class="form-control" id="new-button-row" value="0" min="0">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Column Position</label>
+                        <input type="number" class="form-control" id="new-button-col" value="0" min="0" max="1">
+                    </div>
+                </div>
+                <small class="text-muted">Position in the button grid (0-indexed)</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="createButton()">Add Button</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Button Modal -->
+<div class="modal fade" id="editButtonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Button</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-button-id">
+                <div class="mb-3">
+                    <label class="form-label">Button Text</label>
+                    <input type="text" class="form-control" id="edit-button-text">
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Button Type</label>
+                    <select class="form-select" id="edit-button-type" onchange="updateEditButtonTypeFields()">
+                        <option value="callback">Callback (Navigate to State)</option>
+                        <option value="url">URL Link</option>
+                        <option value="web_app">Web App</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="edit-callback-field">
+                    <label class="form-label">Target State</label>
+                    <select class="form-select" id="edit-button-target-state">
+                        <option value="">-- Select State --</option>
+                    </select>
+                </div>
+                
+                <div class="mb-3" id="edit-url-field" style="display: none;">
+                    <label class="form-label">URL</label>
+                    <input type="text" class="form-control" id="edit-button-url">
+                </div>
+                
+                <div class="mb-3" id="edit-webapp-field" style="display: none;">
+                    <label class="form-label">Web App URL</label>
+                    <input type="text" class="form-control" id="edit-button-webapp">
+                </div>
+                
+                <div class="row">
+                    <div class="col-6">
+                        <label class="form-label">Row Position</label>
+                        <input type="number" class="form-control" id="edit-button-row" min="0">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Column Position</label>
+                        <input type="number" class="form-control" id="edit-button-col" min="0" max="1">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="updateButton()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStateId = null;
+let allStates = [];
+let allButtons = [];
+let variables = [];
+
+// Load initial data
+async function loadData() {
+    await loadStates();
+    await loadVariables();
+}
+
+async function loadStates() {
+    try {
+        const response = await fetch('/api/bot-constructor/states');
+        allStates = await response.json();
+        renderStatesList();
+    } catch (error) {
+        console.error('Error loading states:', error);
+        document.getElementById('states-list').innerHTML = 
+            '<div class="text-center py-3 text-danger">Error loading states</div>';
+    }
+}
+
+async function loadVariables() {
+    try {
+        const response = await fetch('/api/bot-constructor/variables');
+        const data = await response.json();
+        variables = data.variables;
+        renderVariablesList();
+    } catch (error) {
+        console.error('Error loading variables:', error);
+    }
+}
+
+function renderStatesList() {
+    const container = document.getElementById('states-list');
+    
+    if (allStates.length === 0) {
+        container.innerHTML = '<div class="text-center py-3 text-muted">No states yet</div>';
+        return;
+    }
+    
+    container.innerHTML = allStates.map(state => `
+        <a href="#" class="list-group-item list-group-item-action ${currentStateId === state.id ? 'active' : ''}" 
+           onclick="selectState(${state.id}); return false;">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <strong>${escapeHtml(state.name)}</strong>
+                    ${state.is_start_state ? '<span class="badge bg-success ms-2">Start</span>' : ''}
+                    <br><small class="text-muted">${escapeHtml(state.state_key)}</small>
+                </div>
+                <span class="badge bg-primary">${state.buttons.length}</span>
+            </div>
+        </a>
+    `).join('');
+}
+
+function renderVariablesList() {
+    const container = document.getElementById('variables-list');
+    container.innerHTML = variables.map(v => `
+        <div class="mb-2">
+            <code class="bg-light p-1 rounded">${escapeHtml(v.key)}</code>
+            <br><small class="text-muted">${escapeHtml(v.description)}</small>
+        </div>
+    `).join('');
+}
+
+async function selectState(stateId) {
+    currentStateId = stateId;
+    
+    try {
+        const response = await fetch(`/api/bot-constructor/states/${stateId}`);
+        const state = await response.json();
+        
+        // Update UI
+        document.getElementById('no-state-selected').style.display = 'none';
+        document.getElementById('state-editor').style.display = 'block';
+        
+        // Populate fields
+        document.getElementById('state-name-display').textContent = state.name;
+        document.getElementById('state-key-display').textContent = state.state_key;
+        document.getElementById('is-start-state').checked = state.is_start_state;
+        document.getElementById('state-key-input').value = state.state_key;
+        document.getElementById('state-name-input').value = state.name;
+        document.getElementById('message-text-input').value = state.message_text;
+        
+        // Update preview
+        updateMessagePreview(state.message_text);
+        
+        // Store buttons and render
+        allButtons = state.buttons;
+        renderButtons();
+        renderButtonLayoutPreview();
+        
+        // Update states list to highlight selected
+        renderStatesList();
+    } catch (error) {
+        console.error('Error loading state:', error);
+        alert('Error loading state');
+    }
+}
+
+function updateMessagePreview(text) {
+    const preview = document.getElementById('message-preview');
+    if (!text) {
+        preview.textContent = 'No message yet...';
+        return;
+    }
+    
+    // Replace variables with example values
+    let previewText = text
+        .replace(/{username}/g, 'JohnDoe')
+        .replace(/{first_name}/g, 'John')
+        .replace(/{stars_count}/g, '150')
+        .replace(/{stars}/g, '150')
+        .replace(/{referral_code}/g, 'ABC12345')
+        .replace(/{referral_link}/g, 'https://t.me/bot?start=ABC12345')
+        .replace(/{completed_tasks}/g, '5')
+        .replace(/{telegram_id}/g, '123456789');
+    
+    preview.textContent = previewText;
+}
+
+async function updateStateField(field, value) {
+    if (!currentStateId) return;
+    
+    try {
+        const data = {};
+        data[field] = value;
+        
+        const response = await fetch(`/api/bot-constructor/states/${currentStateId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Failed to update');
+        
+        const updatedState = await response.json();
+        
+        // Update display
+        if (field === 'name') {
+            document.getElementById('state-name-display').textContent = value;
+        }
+        if (field === 'state_key') {
+            document.getElementById('state-key-display').textContent = value;
+        }
+        if (field === 'message_text') {
+            updateMessagePreview(value);
+        }
+        
+        // Reload states list
+        await loadStates();
+    } catch (error) {
+        console.error('Error updating state:', error);
+        alert('Error updating state');
+    }
+}
+
+function renderButtons() {
+    const container = document.getElementById('buttons-container');
+    
+    if (allButtons.length === 0) {
+        container.innerHTML = '<p class="text-muted">No buttons yet. Add buttons to make this state interactive.</p>';
+        return;
+    }
+    
+    container.innerHTML = allButtons.map(button => {
+        const targetState = allStates.find(s => s.id === button.target_state_id);
+        const targetName = targetState ? targetState.name : 'None';
+        
+        return `
+            <div class="card mb-2">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${escapeHtml(button.text)}</strong>
+                            <br><small class="text-muted">Type: ${button.button_type}</small>
+                            ${button.button_type === 'callback' ? `<br><small>→ ${escapeHtml(targetName)}</small>` : ''}
+                            <br><small>Position: Row ${button.row_position}, Col ${button.col_position}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-1" onclick="showEditButtonModal(${button.id})">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteButton(${button.id})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderButtonLayoutPreview() {
+    const container = document.getElementById('button-layout-preview');
+    
+    if (allButtons.length === 0) {
+        container.innerHTML = '<p class="text-muted small">No buttons to preview</p>';
+        return;
+    }
+    
+    // Group buttons by row
+    const rows = {};
+    allButtons.forEach(button => {
+        if (!rows[button.row_position]) {
+            rows[button.row_position] = [];
+        }
+        rows[button.row_position].push(button);
+    });
+    
+    // Sort each row by column position
+    Object.keys(rows).forEach(row => {
+        rows[row].sort((a, b) => a.col_position - b.col_position);
+    });
+    
+    // Render rows
+    const rowKeys = Object.keys(rows).sort((a, b) => parseInt(a) - parseInt(b));
+    container.innerHTML = rowKeys.map(row => `
+        <div class="mb-2 d-flex gap-2">
+            ${rows[row].map(button => `
+                <button class="btn btn-sm btn-outline-primary flex-fill">
+                    ${escapeHtml(button.text)}
+                    ${button.target_state_id ? ' →' : ''}
+                </button>
+            `).join('')}
+        </div>
+    `).join('');
+}
+
+function showCreateStateModal() {
+    document.getElementById('new-state-key').value = '';
+    document.getElementById('new-state-name').value = '';
+    document.getElementById('new-state-message').value = '';
+    document.getElementById('new-state-is-start').checked = false;
+    new bootstrap.Modal(document.getElementById('createStateModal')).show();
+}
+
+async function createState() {
+    const stateKey = document.getElementById('new-state-key').value.trim();
+    const name = document.getElementById('new-state-name').value.trim();
+    const message = document.getElementById('new-state-message').value;
+    const isStart = document.getElementById('new-state-is-start').checked;
+    
+    if (!stateKey || !name || !message) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/bot-constructor/states', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                state_key: stateKey,
+                name: name,
+                message_text: message,
+                is_start_state: isStart,
+                x_position: 0,
+                y_position: 0
+            })
+        });
+        
+        if (!response.ok) throw new Error('Failed to create state');
+        
+        const newState = await response.json();
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('createStateModal')).hide();
+        
+        // Reload and select new state
+        await loadStates();
+        selectState(newState.id);
+    } catch (error) {
+        console.error('Error creating state:', error);
+        alert('Error creating state: ' + error.message);
+    }
+}
+
+async function deleteCurrentState() {
+    if (!currentStateId) return;
+    
+    if (!confirm('Are you sure you want to delete this state? All buttons will also be deleted.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/bot-constructor/states/${currentStateId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete');
+        
+        // Clear editor
+        currentStateId = null;
+        document.getElementById('no-state-selected').style.display = 'block';
+        document.getElementById('state-editor').style.display = 'none';
+        
+        // Reload states
+        await loadStates();
+    } catch (error) {
+        console.error('Error deleting state:', error);
+        alert('Error deleting state');
+    }
+}
+
+function showCreateButtonModal() {
+    if (!currentStateId) {
+        alert('Please select a state first');
+        return;
+    }
+    
+    document.getElementById('new-button-text').value = '';
+    document.getElementById('new-button-type').value = 'callback';
+    document.getElementById('new-button-url').value = '';
+    document.getElementById('new-button-webapp').value = '';
+    document.getElementById('new-button-row').value = '0';
+    document.getElementById('new-button-col').value = '0';
+    
+    // Populate target states dropdown
+    const select = document.getElementById('new-button-target-state');
+    select.innerHTML = '<option value="">-- Select State --</option>' + 
+        allStates.map(s => `<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+    
+    updateButtonTypeFields();
+    new bootstrap.Modal(document.getElementById('createButtonModal')).show();
+}
+
+function updateButtonTypeFields() {
+    const type = document.getElementById('new-button-type').value;
+    document.getElementById('callback-field').style.display = type === 'callback' ? 'block' : 'none';
+    document.getElementById('url-field').style.display = type === 'url' ? 'block' : 'none';
+    document.getElementById('webapp-field').style.display = type === 'web_app' ? 'block' : 'none';
+}
+
+async function createButton() {
+    const text = document.getElementById('new-button-text').value.trim();
+    const type = document.getElementById('new-button-type').value;
+    const row = parseInt(document.getElementById('new-button-row').value);
+    const col = parseInt(document.getElementById('new-button-col').value);
+    
+    if (!text) {
+        alert('Please enter button text');
+        return;
+    }
+    
+    const data = {
+        text: text,
+        button_type: type,
+        row_position: row,
+        col_position: col
+    };
+    
+    if (type === 'callback') {
+        const targetStateId = document.getElementById('new-button-target-state').value;
+        if (targetStateId) {
+            data.target_state_id = parseInt(targetStateId);
+        }
+    } else if (type === 'url') {
+        data.url = document.getElementById('new-button-url').value;
+    } else if (type === 'web_app') {
+        data.web_app_url = document.getElementById('new-button-webapp').value;
+    }
+    
+    try {
+        const response = await fetch(`/api/bot-constructor/states/${currentStateId}/buttons`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Failed to create button');
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('createButtonModal')).hide();
+        
+        // Reload current state
+        await selectState(currentStateId);
+    } catch (error) {
+        console.error('Error creating button:', error);
+        alert('Error creating button');
+    }
+}
+
+function showEditButtonModal(buttonId) {
+    const button = allButtons.find(b => b.id === buttonId);
+    if (!button) return;
+    
+    document.getElementById('edit-button-id').value = button.id;
+    document.getElementById('edit-button-text').value = button.text;
+    document.getElementById('edit-button-type').value = button.button_type;
+    document.getElementById('edit-button-url').value = button.url || '';
+    document.getElementById('edit-button-webapp').value = button.web_app_url || '';
+    document.getElementById('edit-button-row').value = button.row_position;
+    document.getElementById('edit-button-col').value = button.col_position;
+    
+    // Populate target states dropdown
+    const select = document.getElementById('edit-button-target-state');
+    select.innerHTML = '<option value="">-- Select State --</option>' + 
+        allStates.map(s => `<option value="${s.id}" ${s.id === button.target_state_id ? 'selected' : ''}>${escapeHtml(s.name)}</option>`).join('');
+    
+    updateEditButtonTypeFields();
+    new bootstrap.Modal(document.getElementById('editButtonModal')).show();
+}
+
+function updateEditButtonTypeFields() {
+    const type = document.getElementById('edit-button-type').value;
+    document.getElementById('edit-callback-field').style.display = type === 'callback' ? 'block' : 'none';
+    document.getElementById('edit-url-field').style.display = type === 'url' ? 'block' : 'none';
+    document.getElementById('edit-webapp-field').style.display = type === 'web_app' ? 'block' : 'none';
+}
+
+async function updateButton() {
+    const buttonId = document.getElementById('edit-button-id').value;
+    const text = document.getElementById('edit-button-text').value.trim();
+    const type = document.getElementById('edit-button-type').value;
+    const row = parseInt(document.getElementById('edit-button-row').value);
+    const col = parseInt(document.getElementById('edit-button-col').value);
+    
+    if (!text) {
+        alert('Please enter button text');
+        return;
+    }
+    
+    const data = {
+        text: text,
+        button_type: type,
+        row_position: row,
+        col_position: col
+    };
+    
+    if (type === 'callback') {
+        const targetStateId = document.getElementById('edit-button-target-state').value;
+        data.target_state_id = targetStateId ? parseInt(targetStateId) : null;
+    } else if (type === 'url') {
+        data.url = document.getElementById('edit-button-url').value;
+    } else if (type === 'web_app') {
+        data.web_app_url = document.getElementById('edit-button-webapp').value;
+    }
+    
+    try {
+        const response = await fetch(`/api/bot-constructor/buttons/${buttonId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        
+        if (!response.ok) throw new Error('Failed to update button');
+        
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('editButtonModal')).hide();
+        
+        // Reload current state
+        await selectState(currentStateId);
+    } catch (error) {
+        console.error('Error updating button:', error);
+        alert('Error updating button');
+    }
+}
+
+async function deleteButton(buttonId) {
+    if (!confirm('Are you sure you want to delete this button?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/bot-constructor/buttons/${buttonId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete');
+        
+        // Reload current state
+        await selectState(currentStateId);
+    } catch (error) {
+        console.error('Error deleting button:', error);
+        alert('Error deleting button');
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Initialize
+loadData();
+</script>
+{% endblock %}

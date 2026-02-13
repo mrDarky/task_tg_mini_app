@@ -439,6 +439,41 @@ class Database:
             ON user_ip_mappings(ip_address)
         """)
         
+        # Bot states table for constructor
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS bot_states (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                state_key TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                message_text TEXT NOT NULL,
+                is_start_state BOOLEAN DEFAULT 0,
+                x_position INTEGER DEFAULT 0,
+                y_position INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Bot buttons table
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS bot_buttons (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                state_id INTEGER NOT NULL,
+                text TEXT NOT NULL,
+                button_type TEXT DEFAULT 'callback',
+                callback_data TEXT,
+                url TEXT,
+                web_app_url TEXT,
+                target_state_id INTEGER,
+                row_position INTEGER DEFAULT 0,
+                col_position INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (state_id) REFERENCES bot_states (id) ON DELETE CASCADE,
+                FOREIGN KEY (target_state_id) REFERENCES bot_states (id) ON DELETE SET NULL
+            )
+        """)
+        
         await self.connection.commit()
         
         # Initialize default languages if not exist
