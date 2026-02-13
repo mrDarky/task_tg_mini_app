@@ -144,6 +144,7 @@ async def update_state(
         await db.execute("UPDATE bot_states SET is_start_state = 0")
     
     # Build update query dynamically
+    # Note: Column names are hardcoded and never derived from user input
     updates = []
     params = []
     
@@ -228,6 +229,7 @@ async def update_button(
         raise HTTPException(status_code=404, detail="Button not found")
     
     # Build update query dynamically
+    # Note: Column names are hardcoded and never derived from user input
     updates = []
     params = []
     
