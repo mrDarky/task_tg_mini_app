@@ -268,7 +268,7 @@ class BotMessageConstructor:
         
         # Try to get from config first
         config_text = get_config_text('messages', 'settings', language,
-                                      language=current_lang.upper(),
+                                      lang=current_lang.upper(),
                                       notifications=notifications,
                                       task_notif=task_notif,
                                       reward_notif=reward_notif)
