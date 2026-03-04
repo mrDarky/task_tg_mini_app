@@ -56,6 +56,62 @@ class ButtonTranslationsUpdate(BaseModel):
     translations: Dict[str, str]  # {language_code: text}
 
 
+class AutoTranslateRequest(BaseModel):
+    text: str
+    source_lang: str
+    target_lang: str
+
+
+@router.post("/auto-translate")
+async def auto_translate(data: AutoTranslateRequest, username: str = Depends(require_auth)):
+    """Translate text using Google Translate free API, preserving {variable} placeholders"""
+    import re
+    import urllib.request
+    import urllib.parse
+    import json
+    import asyncio
+
+    text = data.text
+    source_lang = data.source_lang.strip()
+    target_lang = data.target_lang.strip()
+
+    if not text.strip():
+        return {"translated": ""}
+
+    if source_lang == target_lang:
+        return {"translated": text}
+
+    # Extract {variable} placeholders and replace with safe tokens
+    placeholders = re.findall(r'\{[^}]+\}', text)
+    protected_text = text
+    for i, ph in enumerate(placeholders):
+        protected_text = protected_text.replace(ph, f'__PH{i}__', 1)
+
+    def do_translate(src: str, tgt: str, q: str) -> str:
+        url = (
+            "https://translate.googleapis.com/translate_a/single"
+            f"?client=gtx&sl={urllib.parse.quote(src)}"
+            f"&tl={urllib.parse.quote(tgt)}&dt=t&q={urllib.parse.quote(q)}"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+        return "".join(seg[0] for seg in result[0] if seg[0])
+
+    try:
+        loop = asyncio.get_running_loop()
+        translated = await loop.run_in_executor(None, do_translate, source_lang, target_lang, protected_text)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Translation failed: {str(e)}")
+
+    # Restore {variable} placeholders (handle spaces Google may insert around tokens)
+    for i, ph in enumerate(placeholders):
+        token = f'__PH{i}__'
+        translated = re.sub(r'\s*' + re.escape(token) + r'\s*', ph, translated)
+
+    return {"translated": translated}
+
+
 @router.get("/states")
 async def get_all_states(username: str = Depends(require_auth)):
     """Get all bot states with their buttons"""
