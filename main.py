@@ -227,6 +227,11 @@ async def admin_translations(request: Request, language_id: int, username: str =
     return templates.TemplateResponse("translations.html", {"request": request, "language_id": language_id, "username": username})
 
 
+@app.get("/admin/miniapp-texts", response_class=HTMLResponse)
+async def admin_miniapp_texts(request: Request, username: str = Depends(require_auth)):
+    return templates.TemplateResponse("miniapp_texts.html", {"request": request, "username": username})
+
+
 @app.get("/admin/bot-constructor", response_class=HTMLResponse)
 async def admin_bot_constructor(request: Request, username: str = Depends(require_auth)):
     return templates.TemplateResponse("bot_constructor.html", {"request": request, "username": username})
