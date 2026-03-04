@@ -204,7 +204,7 @@ async def cmd_start(message: types.Message):
     ])
 
     # Use database state if configured in admin panel (constructor)
-    state = await get_bot_state('start')
+    state = await get_bot_state('start', user_lang)
     if state:
         welcome_msg = format_state_message(
             state['message_text'],
@@ -326,7 +326,7 @@ async def cmd_profile(message: types.Message):
     default_profile_text += f"{t('bot_profile_status', user_lang, status=user.get('status', 'active'))}\n"
     default_profile_text += f"{t('bot_profile_member_since', user_lang, date=user['created_at'][:10])}"
 
-    state = await get_bot_state('my_profile')
+    state = await get_bot_state('my_profile', user_lang)
     if state:
         profile_text = format_state_message(
             state['message_text'],
@@ -370,7 +370,10 @@ async def cmd_help(message: types.Message):
         "/settings - Manage notification preferences"
     )
 
-    state = await get_bot_state('help')
+    user = await user_service.get_user_by_telegram_id(message.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+
+    state = await get_bot_state('help', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -432,7 +435,7 @@ async def cmd_settings(message: types.Message):
         f"Reward Notifications: {reward_notif}"
     )
 
-    state = await get_bot_state('settings')
+    state = await get_bot_state('settings', user_settings['language'])
     if state:
         message_text = format_state_message(
             state['message_text'],
@@ -579,7 +582,10 @@ async def help_command(callback: types.CallbackQuery):
         "/settings - Manage notification preferences"
     )
 
-    state = await get_bot_state('help')
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+
+    state = await get_bot_state('help', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -877,7 +883,8 @@ async def claim_daily_bonus(callback: types.CallbackQuery):
             (user['id'], bonus_amount, f'Daily bonus - Day {streak}')
         )
 
-        state = await get_bot_state('daily_bonus')
+        user_lang = await get_user_language(user['id'])
+        state = await get_bot_state('daily_bonus', user_lang)
         if state:
             message_text = format_state_message(
                 state['message_text'],
@@ -934,7 +941,8 @@ async def show_profile(callback: types.CallbackQuery):
     ])
 
     username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
-    state = await get_bot_state('my_profile')
+    user_lang = await get_user_language(user['id'])
+    state = await get_bot_state('my_profile', user_lang)
     if state:
         message_text = format_state_message(
             state['message_text'],
@@ -1005,7 +1013,8 @@ async def show_referral_stats(callback: types.CallbackQuery):
         f"Share your link to earn 50 ⭐ per friend!"
     )
 
-    state = await get_bot_state('referral_stats')
+    user_lang = await get_user_language(user['id'])
+    state = await get_bot_state('referral_stats', user_lang)
     if state:
         message_text = format_state_message(
             state['message_text'],
@@ -1055,7 +1064,8 @@ async def show_star_history(callback: types.CallbackQuery):
         f"*Recent Transactions:*\n{history_text}"
     )
 
-    state = await get_bot_state('star_history')
+    user_lang = await get_user_language(user['id'])
+    state = await get_bot_state('star_history', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -1104,7 +1114,7 @@ async def show_settings(callback: types.CallbackQuery):
         f"Reward Notifications: {reward_notif}"
     )
 
-    state = await get_bot_state('settings')
+    state = await get_bot_state('settings', user_settings['language'])
     if state:
         message_text = format_state_message(
             state['message_text'],
@@ -1131,7 +1141,10 @@ async def change_language(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="🔙 Back", callback_data="settings")]
     ])
 
-    state = await get_bot_state('change_language')
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+
+    state = await get_bot_state('change_language', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -1149,6 +1162,10 @@ async def set_language(callback: types.CallbackQuery):
     user = await user_service.get_user_by_telegram_id(callback.from_user.id)
     
     if user:
+        await db.execute(
+            "INSERT OR IGNORE INTO user_settings (user_id) VALUES (?)",
+            (user['id'],)
+        )
         await db.execute(
             "UPDATE user_settings SET language = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?",
             (lang_code, user['id'])
@@ -1225,7 +1242,9 @@ async def help_tasks(callback: types.CallbackQuery):
         "🎵 TikTok - Like videos, follow accounts\n"
         "📢 Subscribe - Join channels, groups, pages"
     )
-    state = await get_bot_state('help_tasks')
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+    state = await get_bot_state('help_tasks', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -1255,7 +1274,9 @@ async def help_stars(callback: types.CallbackQuery):
         "• Exchange for gift cards\n"
         "• More options coming soon!"
     )
-    state = await get_bot_state('help_stars')
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+    state = await get_bot_state('help_stars', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -1293,7 +1314,8 @@ async def help_referrals(callback: types.CallbackQuery):
         "• Tell your friends about easy tasks\n"
         "• The more you share, the more you earn!"
     )
-    state = await get_bot_state('help_referrals')
+    user_lang = await get_user_language(user['id']) if user else 'en'
+    state = await get_bot_state('help_referrals', user_lang)
     if state:
         message_text = format_state_message(
             state['message_text'],
@@ -1326,7 +1348,9 @@ async def help_support(callback: types.CallbackQuery):
         "• Stars not received? Wait 5-10 minutes\n"
         "• Account issues? Contact support"
     )
-    state = await get_bot_state('help_support')
+    user = await user_service.get_user_by_telegram_id(callback.from_user.id)
+    user_lang = await get_user_language(user['id']) if user else 'en'
+    state = await get_bot_state('help_support', user_lang)
     if state:
         message_text = format_state_message(state['message_text'])
         keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
@@ -1371,7 +1395,8 @@ async def back_to_menu(callback: types.CallbackQuery):
          InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
     ])
 
-    state = await get_bot_state('start')
+    user_lang = await get_user_language(user['id'])
+    state = await get_bot_state('start', user_lang)
     if state:
         message_text = format_state_message(
             state['message_text'],

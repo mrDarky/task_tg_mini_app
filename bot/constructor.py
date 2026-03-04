@@ -91,22 +91,46 @@ def reload_bot_config():
     _config_cache = None
 
 
-async def get_bot_state(state_key: str) -> Optional[Dict[str, Any]]:
+async def get_bot_state(state_key: str, language_code: str = 'en') -> Optional[Dict[str, Any]]:
     """
     Fetch a bot state and its buttons from the database by state_key.
     Returns a dict with 'message_text' and 'buttons', or None if not found.
+    Uses language_code to fetch translated message text and button texts if available.
     """
     from database.db import db
     state = await db.fetch_one("SELECT * FROM bot_states WHERE state_key = ?", (state_key,))
     if not state:
         return None
+
+    # Use translated message text if available for the requested language
+    message_text = state['message_text']
+    translation = await db.fetch_one(
+        "SELECT message_text FROM bot_state_translations WHERE state_id = ? AND language_code = ?",
+        (state['id'], language_code)
+    )
+    if translation and translation['message_text']:
+        message_text = translation['message_text']
+
     buttons = await db.fetch_all(
         "SELECT * FROM bot_buttons WHERE state_id = ? ORDER BY row_position, col_position",
         (state['id'],)
     )
+
+    # Apply button translations for the requested language
+    translated_buttons = []
+    for btn in buttons:
+        btn_dict = dict(btn)
+        btn_translation = await db.fetch_one(
+            "SELECT text FROM bot_button_translations WHERE button_id = ? AND language_code = ?",
+            (btn_dict['id'], language_code)
+        )
+        if btn_translation and btn_translation['text']:
+            btn_dict['text'] = btn_translation['text']
+        translated_buttons.append(btn_dict)
+
     return {
-        'message_text': state['message_text'],
-        'buttons': [dict(btn) for btn in buttons]
+        'message_text': message_text,
+        'buttons': translated_buttons
     }
 
 
