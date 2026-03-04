@@ -193,8 +193,8 @@ async def cmd_start(message: types.Message):
     
     # Create Mini App button
     web_app_url = f"{settings.web_app_url or 'https://example.com'}/miniapp"
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text=t('bot_button_open_app', user_lang), web_app=WebAppInfo(url=web_app_url))],
         [InlineKeyboardButton(text=t('bot_button_view_tasks', user_lang), callback_data="view_tasks")],
         [InlineKeyboardButton(text=t('bot_button_my_profile', user_lang), callback_data="my_profile"),
@@ -202,7 +202,25 @@ async def cmd_start(message: types.Message):
         [InlineKeyboardButton(text=t('bot_button_help', user_lang), callback_data="help"),
          InlineKeyboardButton(text=t('bot_button_settings', user_lang), callback_data="settings")]
     ])
-    
+
+    # Use database state if configured in admin panel (constructor)
+    state = await get_bot_state('start')
+    if state:
+        welcome_msg = format_state_message(
+            state['message_text'],
+            first_name=first_name_display,
+            name=first_name_display,
+            username=user.get('username') or '',
+            stars=user['stars'],
+            stars_count=user['stars'],
+            referral_link=referral_link,
+            referral_code=user.get('referral_code', ''),
+            telegram_id=message.from_user.id,
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons'], web_app_url=web_app_url) or default_keyboard
+    else:
+        keyboard = default_keyboard
+
     await message.answer(
         welcome_msg,
         reply_markup=keyboard,
@@ -296,18 +314,34 @@ async def cmd_profile(message: types.Message):
         [InlineKeyboardButton(text="📊 Star History", callback_data="star_history")],
         [InlineKeyboardButton(text=t('bot_button_back', user_lang), callback_data="back_to_menu")]
     ])
-    
+
     username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
-    
-    profile_text = f"{t('bot_profile_title', user_lang)}\n\n"
-    profile_text += f"{t('bot_profile_username', user_lang, username=username_display)}\n"
-    profile_text += f"{t('bot_profile_stars', user_lang, stars=user['stars'])}\n"
-    profile_text += f"{t('bot_profile_completed', user_lang, completed=completed_tasks)}\n"
-    profile_text += f"{t('bot_profile_referrals', user_lang, referrals=referral_count)}\n"
-    profile_text += f"{t('bot_profile_achievements', user_lang, achievements=achievements_count)}\n"
-    profile_text += f"{t('bot_profile_status', user_lang, status=user['status'])}\n"
-    profile_text += f"{t('bot_profile_member_since', user_lang, date=user['created_at'][:10])}"
-    
+
+    default_profile_text = f"{t('bot_profile_title', user_lang)}\n\n"
+    default_profile_text += f"{t('bot_profile_username', user_lang, username=username_display)}\n"
+    default_profile_text += f"{t('bot_profile_stars', user_lang, stars=user['stars'])}\n"
+    default_profile_text += f"{t('bot_profile_completed', user_lang, completed=completed_tasks)}\n"
+    default_profile_text += f"{t('bot_profile_referrals', user_lang, referrals=referral_count)}\n"
+    default_profile_text += f"{t('bot_profile_achievements', user_lang, achievements=achievements_count)}\n"
+    default_profile_text += f"{t('bot_profile_status', user_lang, status=user.get('status', 'active'))}\n"
+    default_profile_text += f"{t('bot_profile_member_since', user_lang, date=user['created_at'][:10])}"
+
+    state = await get_bot_state('my_profile')
+    if state:
+        profile_text = format_state_message(
+            state['message_text'],
+            username=username_display,
+            stars=user['stars'],
+            stars_count=user['stars'],
+            completed_tasks=completed_tasks,
+            referrals=referral_count,
+            achievements=achievements_count,
+            status=user.get('status', 'active'),
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or keyboard
+    else:
+        profile_text = default_profile_text
+
     await message.answer(
         profile_text,
         reply_markup=keyboard,
@@ -318,15 +352,14 @@ async def cmd_profile(message: types.Message):
 @dp.message(Command("help"))
 async def cmd_help(message: types.Message):
     """Show comprehensive help information"""
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 How to Complete Tasks", callback_data="help_tasks")],
         [InlineKeyboardButton(text="⭐ About Stars", callback_data="help_stars")],
         [InlineKeyboardButton(text="👥 Referral System", callback_data="help_referrals")],
         [InlineKeyboardButton(text="💬 Support", callback_data="help_support")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
-    
-    await message.answer(
+    default_message = (
         "ℹ️ *Task App Help Center*\n\n"
         "Welcome to our help center! Choose a topic below to learn more:\n\n"
         "*Available Commands:*\n"
@@ -334,10 +367,18 @@ async def cmd_help(message: types.Message):
         "/tasks - Browse tasks by category\n"
         "/profile - View your profile and stats\n"
         "/help - Show this help message\n"
-        "/settings - Manage notification preferences",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        "/settings - Manage notification preferences"
     )
+
+    state = await get_bot_state('help')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 @dp.message(Command("settings"))
@@ -366,33 +407,46 @@ async def cmd_settings(message: types.Message):
     notif_status = "✅ Enabled" if user_settings['notifications_enabled'] else "❌ Disabled"
     task_notif = "✅ On" if user_settings['task_notifications'] else "❌ Off"
     reward_notif = "✅ On" if user_settings['reward_notifications'] else "❌ Off"
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌐 Change Language", callback_data="change_language")],
         [InlineKeyboardButton(
-            text=f"🔔 All Notifications: {notif_status}", 
+            text=f"🔔 All Notifications: {notif_status}",
             callback_data="toggle_notifications"
         )],
         [InlineKeyboardButton(
-            text=f"📋 Task Alerts: {task_notif}", 
+            text=f"📋 Task Alerts: {task_notif}",
             callback_data="toggle_task_notif"
         )],
         [InlineKeyboardButton(
-            text=f"🎁 Reward Alerts: {reward_notif}", 
+            text=f"🎁 Reward Alerts: {reward_notif}",
             callback_data="toggle_reward_notif"
         )],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
-    
-    await message.answer(
+    default_message = (
         "⚙️ *Settings*\n\n"
         f"Language: {user_settings['language'].upper()}\n"
         f"Notifications: {notif_status}\n"
         f"Task Notifications: {task_notif}\n"
-        f"Reward Notifications: {reward_notif}",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        f"Reward Notifications: {reward_notif}"
     )
+
+    state = await get_bot_state('settings')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            language=user_settings['language'].upper(),
+            notifications=notif_status,
+            task_notifications=task_notif,
+            reward_notifications=reward_notif,
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
 
 
 @dp.callback_query(F.data == "view_tasks")
