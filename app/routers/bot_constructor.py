@@ -540,3 +540,58 @@ async def generate_default_states(username: str = Depends(require_auth)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating states: {str(e)}")
+
+
+@router.post("/apply-to-bot")
+async def apply_to_bot(username: str = Depends(require_auth)):
+    """
+    Apply constructor changes to the bot.
+    Reads all states from the database and persists them into bot_config.json
+    so that the running bot picks up the updated messages and keyboard layouts.
+    Also clears the in-memory config cache so changes are visible immediately.
+    """
+    try:
+        from bot.constructor import reload_bot_config
+        import json
+        from pathlib import Path
+
+        # Fetch all states with buttons
+        states = await db.fetch_all(
+            "SELECT * FROM bot_states ORDER BY is_start_state DESC, created_at ASC"
+        )
+
+        states_config: dict = {}
+        for state in states:
+            buttons = await db.fetch_all(
+                "SELECT * FROM bot_buttons WHERE state_id = ? ORDER BY row_position, col_position",
+                (state['id'],)
+            )
+            states_config[state['state_key']] = {
+                'message_text': state['message_text'],
+                'buttons': [dict(btn) for btn in buttons]
+            }
+
+        # Load existing config and update the 'states' section
+        config_file = Path(__file__).parent.parent.parent / "bot" / "bot_config.json"
+        existing_config: dict = {}
+        if config_file.exists():
+            try:
+                with open(config_file, 'r', encoding='utf-8') as f:
+                    existing_config = json.load(f)
+            except Exception:
+                existing_config = {}
+
+        existing_config['states'] = states_config
+
+        with open(config_file, 'w', encoding='utf-8') as f:
+            json.dump(existing_config, f, ensure_ascii=False, indent=2)
+
+        # Clear in-memory cache so bot picks up new config immediately
+        reload_bot_config()
+
+        return {
+            "message": "Changes applied to bot successfully",
+            "states_updated": len(states_config)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error applying changes: {str(e)}")

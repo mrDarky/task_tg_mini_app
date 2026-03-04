@@ -91,6 +91,71 @@ def reload_bot_config():
     _config_cache = None
 
 
+async def get_bot_state(state_key: str) -> Optional[Dict[str, Any]]:
+    """
+    Fetch a bot state and its buttons from the database by state_key.
+    Returns a dict with 'message_text' and 'buttons', or None if not found.
+    """
+    from database.db import db
+    state = await db.fetch_one("SELECT * FROM bot_states WHERE state_key = ?", (state_key,))
+    if not state:
+        return None
+    buttons = await db.fetch_all(
+        "SELECT * FROM bot_buttons WHERE state_id = ? ORDER BY row_position, col_position",
+        (state['id'],)
+    )
+    return {
+        'message_text': state['message_text'],
+        'buttons': [dict(btn) for btn in buttons]
+    }
+
+
+def format_state_message(message_text: str, **kwargs) -> str:
+    """
+    Format a state message template by substituting {variable} placeholders
+    with the supplied keyword arguments.
+    """
+    for key, val in kwargs.items():
+        message_text = message_text.replace(f'{{{key}}}', str(val) if val is not None else '')
+    return message_text
+
+
+def build_keyboard_from_db_state(
+    buttons: List[Dict[str, Any]], **kwargs
+) -> Optional[InlineKeyboardMarkup]:
+    """
+    Build an InlineKeyboardMarkup from a list of button dicts (as stored in bot_buttons table).
+    Extra keyword arguments are used to substitute {variable} placeholders in web_app URLs.
+    Returns None when there are no buttons.
+    """
+    if not buttons:
+        return None
+
+    rows: Dict[int, List] = {}
+    for btn in buttons:
+        row = btn.get('row_position', 0)
+        if row not in rows:
+            rows[row] = []
+
+        btn_text = btn.get('text', '')
+        btn_type = btn.get('button_type', 'callback')
+
+        if btn_type == 'url':
+            url = btn.get('url') or ''
+            rows[row].append(InlineKeyboardButton(text=btn_text, url=url))
+        elif btn_type == 'web_app':
+            web_url = btn.get('web_app_url') or ''
+            for key, val in kwargs.items():
+                web_url = web_url.replace(f'{{{key}}}', str(val))
+            rows[row].append(InlineKeyboardButton(text=btn_text, web_app=WebAppInfo(url=web_url)))
+        else:  # callback
+            cb_data = btn.get('callback_data') or ''
+            rows[row].append(InlineKeyboardButton(text=btn_text, callback_data=cb_data))
+
+    inline_keyboard = [rows[r] for r in sorted(rows.keys()) if rows[r]]
+    return InlineKeyboardMarkup(inline_keyboard=inline_keyboard) if inline_keyboard else None
+
+
 class BotMessageConstructor:
     """
     Centralized message constructor for the Telegram bot.
