@@ -114,7 +114,12 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Message Text</label>
-                        <ul class="nav nav-tabs mb-2" id="message-lang-tabs" role="tablist"></ul>
+                        <div class="d-flex justify-content-between align-items-end mb-1">
+                            <ul class="nav nav-tabs flex-grow-1" id="message-lang-tabs" role="tablist"></ul>
+                            <button class="btn btn-sm btn-outline-info ms-2 mb-0" onclick="autoTranslateMsgText()" id="auto-translate-msg-btn" title="Auto-translate from current language to all empty languages">
+                                <i class="bi bi-translate"></i> Auto Translate
+                            </button>
+                        </div>
                         <textarea class="form-control" id="message-text-input" rows="5"
                                   oninput="onMsgTextInput(this.value)"
                                   placeholder="Enter message text here. You can use variables like {username}, {stars_count}, etc."></textarea>
@@ -209,7 +214,12 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Button Text</label>
-                    <ul class="nav nav-tabs mb-2" id="new-btn-lang-tabs" role="tablist"></ul>
+                    <div class="d-flex justify-content-between align-items-end mb-1">
+                        <ul class="nav nav-tabs flex-grow-1" id="new-btn-lang-tabs" role="tablist"></ul>
+                        <button class="btn btn-sm btn-outline-info ms-2 mb-0" onclick="autoTranslateNewBtnText(this)" title="Auto-translate from current language to all empty languages">
+                            <i class="bi bi-translate"></i> Auto Translate
+                        </button>
+                    </div>
                     <input type="text" class="form-control" id="new-button-text" 
                            oninput="onNewBtnTextInput(this.value)"
                            placeholder="e.g., View Tasks">
@@ -276,7 +286,12 @@
                 <input type="hidden" id="edit-button-id">
                 <div class="mb-3">
                     <label class="form-label">Button Text</label>
-                    <ul class="nav nav-tabs mb-2" id="edit-btn-lang-tabs" role="tablist"></ul>
+                    <div class="d-flex justify-content-between align-items-end mb-1">
+                        <ul class="nav nav-tabs flex-grow-1" id="edit-btn-lang-tabs" role="tablist"></ul>
+                        <button class="btn btn-sm btn-outline-info ms-2 mb-0" onclick="autoTranslateEditBtnText(this)" title="Auto-translate from current language to all empty languages">
+                            <i class="bi bi-translate"></i> Auto Translate
+                        </button>
+                    </div>
                     <input type="text" class="form-control" id="edit-button-text"
                            oninput="onEditBtnTextInput(this.value)">
                 </div>
@@ -1195,6 +1210,99 @@ async function confirmGenerateDefaultStates() {
         // Re-enable button
         btn.disabled = false;
         btn.innerHTML = originalText;
+    }
+}
+
+// --- Auto Translate ---
+
+async function callAutoTranslate(text, sourceLang, targetLang) {
+    const response = await fetch('/api/bot-constructor/auto-translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, source_lang: sourceLang, target_lang: targetLang })
+    });
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.detail || 'Translation failed');
+    }
+    const data = await response.json();
+    return data.translated;
+}
+
+async function autoTranslateMsgText() {
+    // Flush current textarea value
+    stateTranslations[activeMsgLang] = document.getElementById('message-text-input').value;
+    const sourceText = stateTranslations[activeMsgLang];
+    if (!sourceText.trim()) {
+        alert('Please enter message text in the current language tab first.');
+        return;
+    }
+    const btn = document.getElementById('auto-translate-msg-btn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Translating...';
+    try {
+        for (const lang of allLanguages) {
+            if (lang.code === activeMsgLang) continue;
+            if (stateTranslations[lang.code] && stateTranslations[lang.code].trim()) continue;
+            stateTranslations[lang.code] = await callAutoTranslate(sourceText, activeMsgLang, lang.code);
+        }
+        showToast('✅ Auto-translation complete', false);
+    } catch (e) {
+        showToast('❌ Auto-translation failed: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+async function autoTranslateNewBtnText(btn) {
+    newBtnTranslations[activeNewBtnLang] = document.getElementById('new-button-text').value;
+    const sourceText = newBtnTranslations[activeNewBtnLang];
+    if (!sourceText.trim()) {
+        alert('Please enter button text in the current language tab first.');
+        return;
+    }
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    try {
+        for (const lang of allLanguages) {
+            if (lang.code === activeNewBtnLang) continue;
+            if (newBtnTranslations[lang.code] && newBtnTranslations[lang.code].trim()) continue;
+            newBtnTranslations[lang.code] = await callAutoTranslate(sourceText, activeNewBtnLang, lang.code);
+        }
+        showToast('✅ Auto-translation complete', false);
+    } catch (e) {
+        showToast('❌ Auto-translation failed: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+}
+
+async function autoTranslateEditBtnText(btn) {
+    editBtnTranslations[activeEditBtnLang] = document.getElementById('edit-button-text').value;
+    const sourceText = editBtnTranslations[activeEditBtnLang];
+    if (!sourceText.trim()) {
+        alert('Please enter button text in the current language tab first.');
+        return;
+    }
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>';
+    try {
+        for (const lang of allLanguages) {
+            if (lang.code === activeEditBtnLang) continue;
+            if (editBtnTranslations[lang.code] && editBtnTranslations[lang.code].trim()) continue;
+            editBtnTranslations[lang.code] = await callAutoTranslate(sourceText, activeEditBtnLang, lang.code);
+        }
+        showToast('✅ Auto-translation complete', false);
+    } catch (e) {
+        showToast('❌ Auto-translation failed: ' + e.message, true);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
     }
 }
 
