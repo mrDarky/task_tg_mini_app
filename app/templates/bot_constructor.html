@@ -114,8 +114,9 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Message Text</label>
+                        <ul class="nav nav-tabs mb-2" id="message-lang-tabs" role="tablist"></ul>
                         <textarea class="form-control" id="message-text-input" rows="5"
-                                  oninput="updateMessagePreview(this.value)"
+                                  oninput="onMsgTextInput(this.value)"
                                   placeholder="Enter message text here. You can use variables like {username}, {stars_count}, etc."></textarea>
                         <small class="text-muted">Use variables like {username}, {stars_count}, {first_name}, etc.</small>
                     </div>
@@ -208,7 +209,9 @@
             <div class="modal-body">
                 <div class="mb-3">
                     <label class="form-label">Button Text</label>
+                    <ul class="nav nav-tabs mb-2" id="new-btn-lang-tabs" role="tablist"></ul>
                     <input type="text" class="form-control" id="new-button-text" 
+                           oninput="onNewBtnTextInput(this.value)"
                            placeholder="e.g., View Tasks">
                 </div>
                 
@@ -273,7 +276,9 @@
                 <input type="hidden" id="edit-button-id">
                 <div class="mb-3">
                     <label class="form-label">Button Text</label>
-                    <input type="text" class="form-control" id="edit-button-text">
+                    <ul class="nav nav-tabs mb-2" id="edit-btn-lang-tabs" role="tablist"></ul>
+                    <input type="text" class="form-control" id="edit-button-text"
+                           oninput="onEditBtnTextInput(this.value)">
                 </div>
                 
                 <div class="mb-3">
@@ -371,11 +376,39 @@ let currentStateId = null;
 let allStates = [];
 let allButtons = [];
 let variables = [];
+let allLanguages = [];
+
+// Per-language message text for the currently open state
+let stateTranslations = {};
+let activeMsgLang = '';
+
+// Per-language button text for create/edit modals
+let newBtnTranslations = {};
+let activeNewBtnLang = '';
+let editBtnTranslations = {};
+let activeEditBtnLang = '';
 
 // Load initial data
 async function loadData() {
+    await loadLanguages();
     await loadStates();
     await loadVariables();
+}
+
+async function loadLanguages() {
+    try {
+        const response = await fetch('/api/languages/');
+        const data = await response.json();
+        allLanguages = data.filter(l => l.is_active);
+    } catch (error) {
+        console.error('Error loading languages:', error);
+    }
+    if (allLanguages.length === 0) {
+        allLanguages = [{code: 'en', name: 'English'}];
+    }
+    activeMsgLang = allLanguages[0].code;
+    activeNewBtnLang = allLanguages[0].code;
+    activeEditBtnLang = allLanguages[0].code;
 }
 
 async function loadStates() {
@@ -434,13 +467,98 @@ function renderVariablesList() {
     `).join('');
 }
 
+// --- Language tab helpers ---
+
+function renderMsgLangTabs() {
+    const tabsEl = document.getElementById('message-lang-tabs');
+    tabsEl.innerHTML = allLanguages.map(lang => `
+        <li class="nav-item" role="presentation">
+            <button class="nav-link ${lang.code === activeMsgLang ? 'active' : ''}"
+                    type="button" onclick="switchMsgLang('${escapeAttr(lang.code)}')">${escapeHtml(lang.name)}</button>
+        </li>
+    `).join('');
+}
+
+function switchMsgLang(langCode) {
+    langCode = decodeURIComponent(langCode);
+    stateTranslations[activeMsgLang] = document.getElementById('message-text-input').value;
+    activeMsgLang = langCode;
+    renderMsgLangTabs();
+    const text = stateTranslations[langCode] || '';
+    document.getElementById('message-text-input').value = text;
+    updateMessagePreview(text);
+}
+
+function onMsgTextInput(value) {
+    stateTranslations[activeMsgLang] = value;
+    updateMessagePreview(value);
+}
+
+function renderNewBtnLangTabs() {
+    const tabsEl = document.getElementById('new-btn-lang-tabs');
+    tabsEl.innerHTML = allLanguages.map(lang => `
+        <li class="nav-item" role="presentation">
+            <button class="nav-link ${lang.code === activeNewBtnLang ? 'active' : ''}"
+                    type="button" onclick="switchNewBtnLang('${escapeAttr(lang.code)}')">${escapeHtml(lang.name)}</button>
+        </li>
+    `).join('');
+}
+
+function switchNewBtnLang(langCode) {
+    langCode = decodeURIComponent(langCode);
+    newBtnTranslations[activeNewBtnLang] = document.getElementById('new-button-text').value;
+    activeNewBtnLang = langCode;
+    renderNewBtnLangTabs();
+    document.getElementById('new-button-text').value = newBtnTranslations[langCode] || '';
+}
+
+function onNewBtnTextInput(value) {
+    newBtnTranslations[activeNewBtnLang] = value;
+}
+
+function renderEditBtnLangTabs() {
+    const tabsEl = document.getElementById('edit-btn-lang-tabs');
+    tabsEl.innerHTML = allLanguages.map(lang => `
+        <li class="nav-item" role="presentation">
+            <button class="nav-link ${lang.code === activeEditBtnLang ? 'active' : ''}"
+                    type="button" onclick="switchEditBtnLang('${escapeAttr(lang.code)}')">${escapeHtml(lang.name)}</button>
+        </li>
+    `).join('');
+}
+
+function switchEditBtnLang(langCode) {
+    langCode = decodeURIComponent(langCode);
+    editBtnTranslations[activeEditBtnLang] = document.getElementById('edit-button-text').value;
+    activeEditBtnLang = langCode;
+    renderEditBtnLangTabs();
+    document.getElementById('edit-button-text').value = editBtnTranslations[langCode] || '';
+}
+
+function onEditBtnTextInput(value) {
+    editBtnTranslations[activeEditBtnLang] = value;
+}
+
+// --- State selection ---
+
 async function selectState(stateId) {
     currentStateId = stateId;
     
     try {
-        const response = await fetch(`/api/bot-constructor/states/${stateId}`);
-        const state = await response.json();
-        
+        const [stateRes, transRes] = await Promise.all([
+            fetch(`/api/bot-constructor/states/${stateId}`),
+            fetch(`/api/bot-constructor/states/${stateId}/translations`)
+        ]);
+        const state = await stateRes.json();
+        stateTranslations = await transRes.json();
+
+        // Fall back to state.message_text for the first language if no translation exists
+        if (allLanguages.length > 0) {
+            const firstCode = allLanguages[0].code;
+            if (!stateTranslations[firstCode]) {
+                stateTranslations[firstCode] = state.message_text;
+            }
+        }
+
         // Update UI
         document.getElementById('no-state-selected').style.display = 'none';
         document.getElementById('state-editor').style.display = 'block';
@@ -451,10 +569,13 @@ async function selectState(stateId) {
         document.getElementById('is-start-state').checked = state.is_start_state;
         document.getElementById('state-key-input').value = state.state_key;
         document.getElementById('state-name-input').value = state.name;
-        document.getElementById('message-text-input').value = state.message_text;
-        
-        // Update preview
-        updateMessagePreview(state.message_text);
+
+        // Render language tabs and populate message textarea
+        activeMsgLang = allLanguages.length > 0 ? allLanguages[0].code : 'en';
+        renderMsgLangTabs();
+        const currentMsgText = stateTranslations[activeMsgLang] || '';
+        document.getElementById('message-text-input').value = currentMsgText;
+        updateMessagePreview(currentMsgText);
         
         // Store buttons and render
         allButtons = state.buttons;
@@ -493,28 +614,43 @@ function updateMessagePreview(text) {
 async function saveCurrentState() {
     if (!currentStateId) return;
 
+    // Flush current textarea value into translations cache
+    stateTranslations[activeMsgLang] = document.getElementById('message-text-input').value;
+
     const btn = document.getElementById('save-state-btn');
     const originalHtml = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
 
     try {
+        // Use the first active language (or EN) as the default message_text for backward compat
+        const defaultCode = getDefaultLanguageCode();
+        const messageText = stateTranslations[defaultCode] || stateTranslations[activeMsgLang] || '';
+
         const data = {
             state_key: document.getElementById('state-key-input').value,
             name: document.getElementById('state-name-input').value,
-            message_text: document.getElementById('message-text-input').value,
+            message_text: messageText,
             is_start_state: document.getElementById('is-start-state').checked,
         };
 
-        const response = await fetch(`/api/bot-constructor/states/${currentStateId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+        const [stateRes, transRes] = await Promise.all([
+            fetch(`/api/bot-constructor/states/${currentStateId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }),
+            fetch(`/api/bot-constructor/states/${currentStateId}/translations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ translations: stateTranslations })
+            })
+        ]);
 
-        if (!response.ok) throw new Error('Failed to save');
+        if (!stateRes.ok) throw new Error('Failed to save state');
+        if (!transRes.ok) throw new Error('Failed to save translations');
 
-        const updatedState = await response.json();
+        const updatedState = await stateRes.json();
 
         // Update display
         document.getElementById('state-name-display').textContent = updatedState.name;
@@ -679,6 +815,16 @@ async function createState() {
         if (!response.ok) throw new Error('Failed to create state');
         
         const newState = await response.json();
+
+        // Seed translations for the default language
+        if (allLanguages.length > 0) {
+            const defaultCode = getDefaultLanguageCode();
+            await fetch(`/api/bot-constructor/states/${newState.id}/translations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ translations: { [defaultCode]: message } })
+            });
+        }
         
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('createStateModal')).hide();
@@ -724,7 +870,11 @@ function showCreateButtonModal() {
         alert('Please select a state first');
         return;
     }
-    
+
+    // Reset translations for new button
+    newBtnTranslations = {};
+    activeNewBtnLang = allLanguages.length > 0 ? allLanguages[0].code : 'en';
+
     document.getElementById('new-button-text').value = '';
     document.getElementById('new-button-type').value = 'callback';
     document.getElementById('new-button-url').value = '';
@@ -732,6 +882,9 @@ function showCreateButtonModal() {
     document.getElementById('new-button-row').value = '0';
     document.getElementById('new-button-col').value = '0';
     
+    // Render language tabs
+    renderNewBtnLangTabs();
+
     // Populate target states dropdown
     const select = document.getElementById('new-button-target-state');
     select.innerHTML = '<option value="">-- Select State --</option>' + 
@@ -749,7 +902,13 @@ function updateButtonTypeFields() {
 }
 
 async function createButton() {
-    const text = document.getElementById('new-button-text').value.trim();
+    // Flush current input into translations cache
+    newBtnTranslations[activeNewBtnLang] = document.getElementById('new-button-text').value;
+
+    // Default text = first language value or any non-empty value
+    const defaultCode = getDefaultLanguageCode();
+    const text = (newBtnTranslations[defaultCode] || Object.values(newBtnTranslations).find(v => v) || '').trim();
+
     const type = document.getElementById('new-button-type').value;
     const row = parseInt(document.getElementById('new-button-row').value);
     const col = parseInt(document.getElementById('new-button-col').value);
@@ -786,6 +945,20 @@ async function createButton() {
         
         if (!response.ok) throw new Error('Failed to create button');
         
+        const newButton = await response.json();
+
+        // Save button translations (only non-empty ones)
+        const filteredTranslations = Object.fromEntries(
+            Object.entries(newBtnTranslations).filter(([, v]) => v.trim())
+        );
+        if (Object.keys(filteredTranslations).length > 0) {
+            await fetch(`/api/bot-constructor/buttons/${newButton.id}/translations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ translations: filteredTranslations })
+            });
+        }
+
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('createButtonModal')).hide();
         
@@ -797,17 +970,37 @@ async function createButton() {
     }
 }
 
-function showEditButtonModal(buttonId) {
+async function showEditButtonModal(buttonId) {
     const button = allButtons.find(b => b.id === buttonId);
     if (!button) return;
-    
+
+    // Load existing button translations
+    let existingTrans = {};
+    try {
+        const res = await fetch(`/api/bot-constructor/buttons/${buttonId}/translations`);
+        existingTrans = await res.json();
+    } catch (e) {
+        console.error('Error loading button translations:', e);
+    }
+
+    // If no translations stored yet, seed with button.text for the first language
+    if (Object.keys(existingTrans).length === 0 && allLanguages.length > 0) {
+        existingTrans[allLanguages[0].code] = button.text;
+    }
+
+    editBtnTranslations = existingTrans;
+    activeEditBtnLang = allLanguages.length > 0 ? allLanguages[0].code : 'en';
+
     document.getElementById('edit-button-id').value = button.id;
-    document.getElementById('edit-button-text').value = button.text;
     document.getElementById('edit-button-type').value = button.button_type;
     document.getElementById('edit-button-url').value = button.url || '';
     document.getElementById('edit-button-webapp').value = button.web_app_url || '';
     document.getElementById('edit-button-row').value = button.row_position;
     document.getElementById('edit-button-col').value = button.col_position;
+
+    // Render language tabs and set text for active language
+    renderEditBtnLangTabs();
+    document.getElementById('edit-button-text').value = editBtnTranslations[activeEditBtnLang] || button.text;
     
     // Populate target states dropdown
     const select = document.getElementById('edit-button-target-state');
@@ -826,8 +1019,12 @@ function updateEditButtonTypeFields() {
 }
 
 async function updateButton() {
+    // Flush current input
+    editBtnTranslations[activeEditBtnLang] = document.getElementById('edit-button-text').value;
+
     const buttonId = document.getElementById('edit-button-id').value;
-    const text = document.getElementById('edit-button-text').value.trim();
+    const defaultCode = getDefaultLanguageCode();
+    const text = (editBtnTranslations[defaultCode] || Object.values(editBtnTranslations).find(v => v) || '').trim();
     const type = document.getElementById('edit-button-type').value;
     const row = parseInt(document.getElementById('edit-button-row').value);
     const col = parseInt(document.getElementById('edit-button-col').value);
@@ -854,13 +1051,22 @@ async function updateButton() {
     }
     
     try {
-        const response = await fetch(`/api/bot-constructor/buttons/${buttonId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+        const [btnRes, transRes] = await Promise.all([
+            fetch(`/api/bot-constructor/buttons/${buttonId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }),
+            fetch(`/api/bot-constructor/buttons/${buttonId}/translations`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ translations: Object.fromEntries(
+                    Object.entries(editBtnTranslations).filter(([, v]) => v.trim())
+                )})
+            })
+        ]);
         
-        if (!response.ok) throw new Error('Failed to update button');
+        if (!btnRes.ok) throw new Error('Failed to update button');
         
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('editButtonModal')).hide();
@@ -895,8 +1101,17 @@ async function deleteButton(buttonId) {
 
 function escapeHtml(text) {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text || '');
     return div.innerHTML;
+}
+
+function escapeAttr(text) {
+    return encodeURIComponent(String(text || ''));
+}
+
+function getDefaultLanguageCode() {
+    const enLang = allLanguages.find(l => l.code === 'en');
+    return (enLang || allLanguages[0] || {}).code || 'en';
 }
 
 // Generate Default States functions

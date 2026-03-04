@@ -474,6 +474,34 @@ class Database:
             )
         """)
         
+        # Bot state translations table (per-language message texts)
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS bot_state_translations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                state_id INTEGER NOT NULL,
+                language_code TEXT NOT NULL,
+                message_text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (state_id) REFERENCES bot_states (id) ON DELETE CASCADE,
+                UNIQUE(state_id, language_code)
+            )
+        """)
+
+        # Bot button translations table (per-language button texts)
+        await self.connection.execute("""
+            CREATE TABLE IF NOT EXISTS bot_button_translations (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                button_id INTEGER NOT NULL,
+                language_code TEXT NOT NULL,
+                text TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (button_id) REFERENCES bot_buttons (id) ON DELETE CASCADE,
+                UNIQUE(button_id, language_code)
+            )
+        """)
+
         await self.connection.commit()
         
         # Initialize default languages if not exist

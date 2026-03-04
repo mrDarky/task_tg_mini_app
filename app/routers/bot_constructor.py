@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 from database.db import db
 from app.auth import require_auth
 from datetime import datetime, timezone
@@ -46,6 +46,14 @@ class BotStateUpdate(BaseModel):
     is_start_state: Optional[bool] = None
     x_position: Optional[int] = None
     y_position: Optional[int] = None
+
+
+class StateTranslationsUpdate(BaseModel):
+    translations: Dict[str, str]  # {language_code: message_text}
+
+
+class ButtonTranslationsUpdate(BaseModel):
+    translations: Dict[str, str]  # {language_code: text}
 
 
 @router.get("/states")
@@ -281,6 +289,82 @@ async def delete_button(button_id: int, username: str = Depends(require_auth)):
     
     await db.execute("DELETE FROM bot_buttons WHERE id = ?", (button_id,))
     return {"message": "Button deleted successfully"}
+
+
+@router.get("/states/{state_id}/translations")
+async def get_state_translations(state_id: int, username: str = Depends(require_auth)):
+    """Get per-language message text translations for a state"""
+    state = await db.fetch_one("SELECT id FROM bot_states WHERE id = ?", (state_id,))
+    if not state:
+        raise HTTPException(status_code=404, detail="State not found")
+
+    rows = await db.fetch_all(
+        "SELECT language_code, message_text FROM bot_state_translations WHERE state_id = ?",
+        (state_id,)
+    )
+    return {row['language_code']: row['message_text'] for row in rows}
+
+
+@router.put("/states/{state_id}/translations")
+async def update_state_translations(
+    state_id: int,
+    data: StateTranslationsUpdate,
+    username: str = Depends(require_auth)
+):
+    """Save per-language message text translations for a state"""
+    state = await db.fetch_one("SELECT id FROM bot_states WHERE id = ?", (state_id,))
+    if not state:
+        raise HTTPException(status_code=404, detail="State not found")
+
+    for lang_code, message_text in data.translations.items():
+        await db.execute(
+            """INSERT INTO bot_state_translations (state_id, language_code, message_text)
+               VALUES (?, ?, ?)
+               ON CONFLICT(state_id, language_code) DO UPDATE SET
+               message_text = excluded.message_text,
+               updated_at = CURRENT_TIMESTAMP""",
+            (state_id, lang_code, message_text)
+        )
+
+    return {"message": "State translations saved successfully"}
+
+
+@router.get("/buttons/{button_id}/translations")
+async def get_button_translations(button_id: int, username: str = Depends(require_auth)):
+    """Get per-language text translations for a button"""
+    button = await db.fetch_one("SELECT id FROM bot_buttons WHERE id = ?", (button_id,))
+    if not button:
+        raise HTTPException(status_code=404, detail="Button not found")
+
+    rows = await db.fetch_all(
+        "SELECT language_code, text FROM bot_button_translations WHERE button_id = ?",
+        (button_id,)
+    )
+    return {row['language_code']: row['text'] for row in rows}
+
+
+@router.put("/buttons/{button_id}/translations")
+async def update_button_translations(
+    button_id: int,
+    data: ButtonTranslationsUpdate,
+    username: str = Depends(require_auth)
+):
+    """Save per-language text translations for a button"""
+    button = await db.fetch_one("SELECT id FROM bot_buttons WHERE id = ?", (button_id,))
+    if not button:
+        raise HTTPException(status_code=404, detail="Button not found")
+
+    for lang_code, text in data.translations.items():
+        await db.execute(
+            """INSERT INTO bot_button_translations (button_id, language_code, text)
+               VALUES (?, ?, ?)
+               ON CONFLICT(button_id, language_code) DO UPDATE SET
+               text = excluded.text,
+               updated_at = CURRENT_TIMESTAMP""",
+            (button_id, lang_code, text)
+        )
+
+    return {"message": "Button translations saved successfully"}
 
 
 @router.get("/variables")
