@@ -7,6 +7,7 @@ from database.db import db
 from app.services import user_service, task_service, category_service
 from app.models import UserCreate
 from bot.i18n import t
+from bot.constructor import get_bot_state, format_state_message, build_keyboard_from_db_state
 import asyncio
 import logging
 import hashlib
@@ -506,15 +507,14 @@ async def my_stats(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "help")
 async def help_command(callback: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📋 How to Complete Tasks", callback_data="help_tasks")],
         [InlineKeyboardButton(text="⭐ About Stars", callback_data="help_stars")],
         [InlineKeyboardButton(text="👥 Referral System", callback_data="help_referrals")],
         [InlineKeyboardButton(text="💬 Support", callback_data="help_support")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         "ℹ️ *Task App Help Center*\n\n"
         "Welcome to our help center! Choose a topic below to learn more:\n\n"
         "*Available Commands:*\n"
@@ -522,10 +522,18 @@ async def help_command(callback: types.CallbackQuery):
         "/tasks - Browse tasks by category\n"
         "/profile - View your profile and stats\n"
         "/help - Show this help message\n"
-        "/settings - Manage notification preferences",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        "/settings - Manage notification preferences"
     )
+
+    state = await get_bot_state('help')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -814,14 +822,26 @@ async def claim_daily_bonus(callback: types.CallbackQuery):
             VALUES (?, ?, 'bonus', ?)""",
             (user['id'], bonus_amount, f'Daily bonus - Day {streak}')
         )
-        
-        await callback.message.answer(
-            f"🎁 *Daily Bonus Claimed!*\n\n"
-            f"You received: {bonus_amount} ⭐\n"
-            f"Streak: {streak} day(s)\n\n"
-            f"Come back tomorrow to maintain your streak!",
-            parse_mode="Markdown"
-        )
+
+        state = await get_bot_state('daily_bonus')
+        if state:
+            message_text = format_state_message(
+                state['message_text'],
+                bonus_amount=bonus_amount,
+                streak=streak,
+                stars=user['stars'] + bonus_amount,
+            )
+            keyboard = build_keyboard_from_db_state(state['buttons'])
+        else:
+            message_text = (
+                f"🎁 *Daily Bonus Claimed!*\n\n"
+                f"You received: {bonus_amount} ⭐\n"
+                f"Streak: {streak} day(s)\n\n"
+                f"Come back tomorrow to maintain your streak!"
+            )
+            keyboard = None
+
+        await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
         await callback.answer("Bonus claimed!", show_alert=True)
 
 
@@ -851,26 +871,41 @@ async def show_profile(callback: types.CallbackQuery):
         (user['id'],)
     )
     achievements_count = achievements_result['count'] if achievements_result else 0
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🏆 Achievements", callback_data="view_achievements")],
         [InlineKeyboardButton(text="👥 Referrals", callback_data="referral_stats")],
         [InlineKeyboardButton(text="📊 History", callback_data="star_history")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
-    
+
     username_display = escape_markdown(user['username']) if user['username'] else 'N/A'
-    await callback.message.answer(
-        f"👤 *Your Profile*\n\n"
-        f"Username: @{username_display}\n"
-        f"⭐ Stars: {user['stars']}\n"
-        f"✅ Completed: {completed_tasks}\n"
-        f"👥 Referrals: {referral_count}\n"
-        f"🏆 Achievements: {achievements_count}\n"
-        f"📅 Member since: {user['created_at'][:10]}",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+    state = await get_bot_state('my_profile')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            username=username_display,
+            stars=user['stars'],
+            stars_count=user['stars'],
+            completed_tasks=completed_tasks,
+            referrals=referral_count,
+            achievements=achievements_count,
+            status=user.get('status', 'active'),
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = (
+            f"👤 *Your Profile*\n\n"
+            f"Username: @{username_display}\n"
+            f"⭐ Stars: {user['stars']}\n"
+            f"✅ Completed: {completed_tasks}\n"
+            f"👥 Referrals: {referral_count}\n"
+            f"🏆 Achievements: {achievements_count}\n"
+            f"📅 Member since: {user['created_at'][:10]}"
+        )
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -903,21 +938,34 @@ async def show_referral_stats(callback: types.CallbackQuery):
     bot_username_escaped = escape_markdown(settings.bot_username)
     share_url = f"https://t.me/{bot_username_escaped}?start={user['referral_code']}"
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Share Referral Link", url=share_url)],
         [InlineKeyboardButton(text="🔙 Back", callback_data="my_profile")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         f"👥 *Referral Statistics*\n\n"
         f"Your referral code: `{user['referral_code']}`\n"
         f"Total referrals: {referral_count}\n"
         f"Bonus earned: {total_bonus} ⭐\n\n"
         f"*Recent Referrals:*\n{referral_list}\n\n"
-        f"Share your link to earn 50 ⭐ per friend!",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        f"Share your link to earn 50 ⭐ per friend!"
     )
+
+    state = await get_bot_state('referral_stats')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            referral_count=referral_count,
+            total_referral_earnings=total_bonus,
+            referral_link=share_url,
+            referral_code=user['referral_code'],
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -944,17 +992,24 @@ async def show_star_history(callback: types.CallbackQuery):
             for tx in transactions
         ])
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔙 Back", callback_data="my_profile")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         f"📊 *Star Transaction History*\n\n"
         f"Current Balance: {user['stars']} ⭐\n\n"
-        f"*Recent Transactions:*\n{history_text}",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        f"*Recent Transactions:*\n{history_text}"
     )
+
+    state = await get_bot_state('star_history')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -980,40 +1035,57 @@ async def show_settings(callback: types.CallbackQuery):
     task_notif = "✅" if user_settings['task_notifications'] else "❌"
     reward_notif = "✅" if user_settings['reward_notifications'] else "❌"
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🌐 Language", callback_data="change_language")],
         [InlineKeyboardButton(text=f"🔔 Notifications {notif_status}", callback_data="toggle_notifications")],
         [InlineKeyboardButton(text=f"📋 Task Alerts {task_notif}", callback_data="toggle_task_notif")],
         [InlineKeyboardButton(text=f"🎁 Reward Alerts {reward_notif}", callback_data="toggle_reward_notif")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="back_to_menu")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         "⚙️ *Settings*\n\n"
         f"Language: {user_settings['language'].upper()}\n"
         f"Notifications: {notif_status}\n"
         f"Task Notifications: {task_notif}\n"
-        f"Reward Notifications: {reward_notif}",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        f"Reward Notifications: {reward_notif}"
     )
+
+    state = await get_bot_state('settings')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            lang=user_settings['language'].upper(),
+            notifications=notif_status,
+            task_notif=task_notif,
+            reward_notif=reward_notif,
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
 @dp.callback_query(F.data == "change_language")
 async def change_language(callback: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🇬🇧 English", callback_data="lang_en")],
         [InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru")],
         [InlineKeyboardButton(text="🇪🇸 Español", callback_data="lang_es")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="settings")]
     ])
-    
-    await callback.message.answer(
-        "🌐 *Select Language*\n\nChoose your preferred language:",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
+
+    state = await get_bot_state('change_language')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = "🌐 *Select Language*\n\nChoose your preferred language:"
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -1082,7 +1154,10 @@ async def toggle_reward_notif(callback: types.CallbackQuery):
 # Help callbacks
 @dp.callback_query(F.data == "help_tasks")
 async def help_tasks(callback: types.CallbackQuery):
-    await callback.message.answer(
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Back", callback_data="help")]
+    ])
+    default_message = (
         "📋 *How to Complete Tasks*\n\n"
         "1. Browse tasks by category using /tasks\n"
         "2. Click on a task to see full details\n"
@@ -1094,15 +1169,25 @@ async def help_tasks(callback: types.CallbackQuery):
         "*Task Types:*\n"
         "🎥 YouTube - Watch videos, subscribe to channels\n"
         "🎵 TikTok - Like videos, follow accounts\n"
-        "📢 Subscribe - Join channels, groups, pages",
-        parse_mode="Markdown"
+        "📢 Subscribe - Join channels, groups, pages"
     )
+    state = await get_bot_state('help_tasks')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
 @dp.callback_query(F.data == "help_stars")
 async def help_stars(callback: types.CallbackQuery):
-    await callback.message.answer(
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🔙 Back", callback_data="help")]
+    ])
+    default_message = (
         "⭐ *About Stars*\n\n"
         "Stars are the currency in Task App!\n\n"
         "*Ways to Earn Stars:*\n"
@@ -1114,9 +1199,16 @@ async def help_stars(callback: types.CallbackQuery):
         "• Redeem for rewards\n"
         "• Withdraw to real money\n"
         "• Exchange for gift cards\n"
-        "• More options coming soon!",
-        parse_mode="Markdown"
+        "• More options coming soon!"
     )
+    state = await get_bot_state('help_stars')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -1128,12 +1220,11 @@ async def help_referrals(callback: types.CallbackQuery):
     bot_username_escaped = escape_markdown(settings.bot_username)
     share_url = f"https://t.me/{bot_username_escaped}?start={referral_code}"
     
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📤 Share Your Link", url=share_url)],
         [InlineKeyboardButton(text="🔙 Back", callback_data="help")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         "👥 *Referral System*\n\n"
         f"Your referral code: `{referral_code}`\n\n"
         "*How it works:*\n"
@@ -1146,21 +1237,30 @@ async def help_referrals(callback: types.CallbackQuery):
         "*Tips:*\n"
         "• Share on social media\n"
         "• Tell your friends about easy tasks\n"
-        "• The more you share, the more you earn!",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        "• The more you share, the more you earn!"
     )
+    state = await get_bot_state('help_referrals')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            referral_link=share_url,
+            referral_code=referral_code,
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
 @dp.callback_query(F.data == "help_support")
 async def help_support(callback: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📝 Create Support Ticket", callback_data="create_ticket")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="help")]
     ])
-    
-    await callback.message.answer(
+    default_message = (
         "💬 *Support*\n\n"
         "Need help? We're here for you!\n\n"
         "*Contact Options:*\n"
@@ -1170,10 +1270,16 @@ async def help_support(callback: types.CallbackQuery):
         "*Common Issues:*\n"
         "• Task not completed? Check requirements\n"
         "• Stars not received? Wait 5-10 minutes\n"
-        "• Account issues? Contact support",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        "• Account issues? Contact support"
     )
+    state = await get_bot_state('help_support')
+    if state:
+        message_text = format_state_message(state['message_text'])
+        keyboard = build_keyboard_from_db_state(state['buttons']) or default_keyboard
+    else:
+        message_text = default_message
+        keyboard = default_keyboard
+    await callback.message.answer(message_text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 
@@ -1198,8 +1304,11 @@ async def back_to_menu(callback: types.CallbackQuery):
         return
     
     web_app_url = f"{settings.web_app_url or 'https://example.com'}/miniapp"
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+    first_name = callback.from_user.first_name or 'there'
+    bot_username = settings.bot_username or DEFAULT_BOT_USERNAME
+    referral_link = f"https://t.me/{bot_username}?start={user.get('referral_code', '')}"
+
+    default_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🚀 Open Mini App", web_app=WebAppInfo(url=web_app_url))],
         [InlineKeyboardButton(text="📋 View Tasks", callback_data="view_tasks")],
         [InlineKeyboardButton(text="👤 My Profile", callback_data="my_profile"),
@@ -1207,12 +1316,28 @@ async def back_to_menu(callback: types.CallbackQuery):
         [InlineKeyboardButton(text="ℹ️ Help", callback_data="help"),
          InlineKeyboardButton(text="⚙️ Settings", callback_data="settings")]
     ])
-    
-    await callback.message.answer(
-        f"👋 Welcome back, {callback.from_user.first_name}!\n\n"
-        f"Your current stars: {user['stars']} ⭐",
-        reply_markup=keyboard
-    )
+
+    state = await get_bot_state('start')
+    if state:
+        message_text = format_state_message(
+            state['message_text'],
+            first_name=first_name,
+            username=user.get('username') or '',
+            stars=user['stars'],
+            stars_count=user['stars'],
+            referral_link=referral_link,
+            referral_code=user.get('referral_code', ''),
+            telegram_id=callback.from_user.id,
+        )
+        keyboard = build_keyboard_from_db_state(state['buttons'], web_app_url=web_app_url) or default_keyboard
+    else:
+        message_text = (
+            f"👋 Welcome back, {first_name}!\n\n"
+            f"Your current stars: {user['stars']} ⭐"
+        )
+        keyboard = default_keyboard
+
+    await callback.message.answer(message_text, reply_markup=keyboard)
     await callback.answer()
 
 

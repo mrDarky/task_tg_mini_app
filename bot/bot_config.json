@@ -1,7 +1,6 @@
 {
   "version": "1.0",
   "description": "Bot Constructor Configuration - Customize all bot messages, buttons, and UI elements",
-  
   "messages": {
     "en": {
       "welcome_new": "👋 Welcome to Task App, {name}!\n\nComplete tasks and earn stars ⭐\nYour current stars: {stars}\nYour referral link: {referral_link}\n\nShare your link with friends to earn bonus stars!",
@@ -76,7 +75,6 @@
       "error_generic": "Ocurrió un error. Por favor, inténtalo de nuevo más tarde."
     }
   },
-  
   "buttons": {
     "en": {
       "open_app": "🚀 Open Mini App",
@@ -157,10 +155,552 @@
       "toggle_reward_notif_off": "❌ Notificaciones de Recompensas"
     }
   },
-  
   "language_names": {
     "en": "English 🇬🇧",
     "ru": "Русский 🇷🇺",
     "es": "Español 🇪🇸"
+  },
+  "states": {
+    "start": {
+      "message_text": "🎉 Welcome back, {first_name}! Your stars: {stars} ⭐ - CUSTOM MESSAGE",
+      "buttons": [
+        {
+          "id": 1,
+          "state_id": 1,
+          "text": "🚀 Open Mini App",
+          "button_type": "web_app",
+          "callback_data": null,
+          "url": null,
+          "web_app_url": "{web_app_url}",
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 2,
+          "state_id": 1,
+          "text": "📋 View Tasks",
+          "button_type": "callback",
+          "callback_data": "view_tasks",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 3,
+          "state_id": 1,
+          "text": "👤 My Profile",
+          "button_type": "callback",
+          "callback_data": "my_profile",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 4,
+          "state_id": 1,
+          "text": "🎁 Daily Bonus",
+          "button_type": "callback",
+          "callback_data": "daily_bonus",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 1,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 5,
+          "state_id": 1,
+          "text": "ℹ️ Help",
+          "button_type": "callback",
+          "callback_data": "help",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 6,
+          "state_id": 1,
+          "text": "⚙️ Settings",
+          "button_type": "callback",
+          "callback_data": "settings",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 1,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "view_tasks": {
+      "message_text": "📋 *Task Categories*\n\nChoose a category to view available tasks:",
+      "buttons": [
+        {
+          "id": 7,
+          "state_id": 2,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "back_to_menu",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "my_profile": {
+      "message_text": "👤 *Your Profile*\n\nUsername: @{username}\n⭐ Stars: {stars}\n✅ Completed Tasks: {completed_tasks}\n👥 Referrals: {referrals}\n🏆 Achievements: {achievements}\n📌 Status: {status}",
+      "buttons": [
+        {
+          "id": 8,
+          "state_id": 3,
+          "text": "🏆 View Achievements",
+          "button_type": "callback",
+          "callback_data": "view_achievements",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 9,
+          "state_id": 3,
+          "text": "👥 Referral Stats",
+          "button_type": "callback",
+          "callback_data": "referral_stats",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 10,
+          "state_id": 3,
+          "text": "📊 Star History",
+          "button_type": "callback",
+          "callback_data": "star_history",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 11,
+          "state_id": 3,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "back_to_menu",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "daily_bonus": {
+      "message_text": "🎁 *Daily Bonus*\n\nClaim your daily reward and maintain your streak!\n\nStreak: {streak} days\nToday's bonus: {bonus_amount} ⭐",
+      "buttons": [
+        {
+          "id": 12,
+          "state_id": 4,
+          "text": "✅ Claim Bonus",
+          "button_type": "callback",
+          "callback_data": "claim_daily_bonus",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 13,
+          "state_id": 4,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "back_to_menu",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "help": {
+      "message_text": "ℹ️ *Help & Information*\n\nSelect a topic to learn more:",
+      "buttons": [
+        {
+          "id": 14,
+          "state_id": 5,
+          "text": "📋 How to Complete Tasks",
+          "button_type": "callback",
+          "callback_data": "help_tasks",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 15,
+          "state_id": 5,
+          "text": "⭐ About Stars",
+          "button_type": "callback",
+          "callback_data": "help_stars",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 16,
+          "state_id": 5,
+          "text": "👥 Referral System",
+          "button_type": "callback",
+          "callback_data": "help_referrals",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 17,
+          "state_id": 5,
+          "text": "💬 Support",
+          "button_type": "callback",
+          "callback_data": "help_support",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 18,
+          "state_id": 5,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "back_to_menu",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 4,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "settings": {
+      "message_text": "⚙️ *Settings*\n\nConfigure your preferences:",
+      "buttons": [
+        {
+          "id": 19,
+          "state_id": 6,
+          "text": "🌐 Change Language",
+          "button_type": "callback",
+          "callback_data": "change_language",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 20,
+          "state_id": 6,
+          "text": "🔔 Notifications",
+          "button_type": "callback",
+          "callback_data": "toggle_notifications",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 21,
+          "state_id": 6,
+          "text": "📋 Task Notifications",
+          "button_type": "callback",
+          "callback_data": "toggle_task_notif",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 22,
+          "state_id": 6,
+          "text": "🎁 Reward Notifications",
+          "button_type": "callback",
+          "callback_data": "toggle_reward_notif",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 23,
+          "state_id": 6,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "back_to_menu",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 4,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "referral_stats": {
+      "message_text": "👥 *Referral Statistics*\n\nYour referrals: {referral_count}\nTotal earned from referrals: {total_referral_earnings} ⭐\n\nShare your link to earn more:\n{referral_link}",
+      "buttons": [
+        {
+          "id": 24,
+          "state_id": 7,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "my_profile",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "star_history": {
+      "message_text": "📊 *Star Transaction History*\n\nView your recent star transactions and earnings.",
+      "buttons": [
+        {
+          "id": 25,
+          "state_id": 8,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "my_profile",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "help_tasks": {
+      "message_text": "📋 *How to Complete Tasks*\n\n1. Browse available tasks in the task categories\n2. Click on a task to view details\n3. Follow the instructions (watch video, subscribe, etc.)\n4. Submit your completion\n5. Wait for verification\n6. Earn stars! ⭐",
+      "buttons": [
+        {
+          "id": 26,
+          "state_id": 9,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "help",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "help_stars": {
+      "message_text": "⭐ *About Stars*\n\nStars are the main currency in our app. You can earn stars by:\n- Completing tasks\n- Daily bonuses\n- Referring friends\n- Achievements\n\nUse stars to unlock premium features!",
+      "buttons": [
+        {
+          "id": 27,
+          "state_id": 10,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "help",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "help_referrals": {
+      "message_text": "👥 *Referral System*\n\nInvite friends and earn rewards!\n\n- Share your unique referral link\n- When someone joins using your link, you both get stars\n- The more friends you invite, the more you earn\n\nYour referral link: {referral_link}",
+      "buttons": [
+        {
+          "id": 28,
+          "state_id": 11,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "help",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "help_support": {
+      "message_text": "💬 *Support*\n\nNeed help? We're here for you!\n\nCreate a support ticket and our team will assist you as soon as possible.",
+      "buttons": [
+        {
+          "id": 29,
+          "state_id": 12,
+          "text": "📝 Create Ticket",
+          "button_type": "callback",
+          "callback_data": "create_ticket",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 30,
+          "state_id": 12,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "help",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    },
+    "change_language": {
+      "message_text": "🌐 *Choose your language*\n\nSelect your preferred language:",
+      "buttons": [
+        {
+          "id": 31,
+          "state_id": 13,
+          "text": "🇬🇧 English",
+          "button_type": "callback",
+          "callback_data": "lang_en",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 0,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 32,
+          "state_id": 13,
+          "text": "🇷🇺 Русский",
+          "button_type": "callback",
+          "callback_data": "lang_ru",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 1,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 33,
+          "state_id": 13,
+          "text": "🇪🇸 Español",
+          "button_type": "callback",
+          "callback_data": "lang_es",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 2,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        },
+        {
+          "id": 34,
+          "state_id": 13,
+          "text": "🔙 Back",
+          "button_type": "callback",
+          "callback_data": "settings",
+          "url": null,
+          "web_app_url": null,
+          "target_state_id": null,
+          "row_position": 3,
+          "col_position": 0,
+          "created_at": "2026-03-04 10:47:36",
+          "updated_at": "2026-03-04 10:47:36"
+        }
+      ]
+    }
   }
 }

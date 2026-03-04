@@ -4,9 +4,30 @@
 
 {% block content %}
 <div class="row mb-4">
-    <div class="col-12">
-        <h1 class="mb-3">Bot Message & Button Constructor</h1>
-        <p class="text-muted">Design bot conversation flows with messages and interactive buttons</p>
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-1">Bot Message & Button Constructor</h1>
+            <p class="text-muted mb-0">Design bot conversation flows with messages and interactive buttons</p>
+        </div>
+        <div>
+            <button class="btn btn-success" onclick="applyToBot()" id="apply-to-bot-btn">
+                <i class="bi bi-send-check"></i> Apply Changes to Bot
+            </button>
+        </div>
+    </div>
+</div>
+<div id="apply-toast" class="position-fixed bottom-0 end-0 p-3" style="z-index: 1100;">
+    <div class="toast align-items-center text-bg-success border-0" role="alert" id="success-toast">
+        <div class="d-flex">
+            <div class="toast-body" id="toast-message">Changes applied to bot successfully!</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+    <div class="toast align-items-center text-bg-danger border-0 mt-2" role="alert" id="error-toast">
+        <div class="d-flex">
+            <div class="toast-body" id="error-toast-message">Error applying changes.</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
     </div>
 </div>
 
@@ -59,7 +80,10 @@
                     <h5 class="mb-0" id="state-name-display">State Name</h5>
                     <small class="text-muted" id="state-key-display">state_key</small>
                 </div>
-                <div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-primary" onclick="saveCurrentState()" id="save-state-btn">
+                        <i class="bi bi-floppy"></i> Save Changes
+                    </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteCurrentState()">
                         <i class="bi bi-trash"></i> Delete State
                     </button>
@@ -69,7 +93,7 @@
                 <!-- State Info -->
                 <div class="mb-4">
                     <div class="form-check mb-3">
-                        <input class="form-check-input" type="checkbox" id="is-start-state" onchange="updateStateField('is_start_state', this.checked)">
+                        <input class="form-check-input" type="checkbox" id="is-start-state">
                         <label class="form-check-label" for="is-start-state">
                             <strong>Start State</strong> (shown when user types /start)
                         </label>
@@ -78,7 +102,6 @@
                     <div class="mb-3">
                         <label class="form-label">State Key</label>
                         <input type="text" class="form-control" id="state-key-input" 
-                               onchange="updateStateField('state_key', this.value)" 
                                placeholder="e.g., main_menu, help_menu">
                         <small class="text-muted">Unique identifier for this state</small>
                     </div>
@@ -86,14 +109,13 @@
                     <div class="mb-3">
                         <label class="form-label">Display Name</label>
                         <input type="text" class="form-control" id="state-name-input" 
-                               onchange="updateStateField('name', this.value)"
                                placeholder="e.g., Main Menu, Help Screen">
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Message Text</label>
                         <textarea class="form-control" id="message-text-input" rows="5"
-                                  onchange="updateStateField('message_text', this.value)"
+                                  oninput="updateMessagePreview(this.value)"
                                   placeholder="Enter message text here. You can use variables like {username}, {stars_count}, etc."></textarea>
                         <small class="text-muted">Use variables like {username}, {stars_count}, {first_name}, etc.</small>
                     </div>
@@ -468,40 +490,84 @@ function updateMessagePreview(text) {
     preview.textContent = previewText;
 }
 
-async function updateStateField(field, value) {
+async function saveCurrentState() {
     if (!currentStateId) return;
-    
+
+    const btn = document.getElementById('save-state-btn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
     try {
-        const data = {};
-        data[field] = value;
-        
+        const data = {
+            state_key: document.getElementById('state-key-input').value,
+            name: document.getElementById('state-name-input').value,
+            message_text: document.getElementById('message-text-input').value,
+            is_start_state: document.getElementById('is-start-state').checked,
+        };
+
         const response = await fetch(`/api/bot-constructor/states/${currentStateId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-        
-        if (!response.ok) throw new Error('Failed to update');
-        
+
+        if (!response.ok) throw new Error('Failed to save');
+
         const updatedState = await response.json();
-        
+
         // Update display
-        if (field === 'name') {
-            document.getElementById('state-name-display').textContent = value;
-        }
-        if (field === 'state_key') {
-            document.getElementById('state-key-display').textContent = value;
-        }
-        if (field === 'message_text') {
-            updateMessagePreview(value);
-        }
-        
-        // Reload states list
+        document.getElementById('state-name-display').textContent = updatedState.name;
+        document.getElementById('state-key-display').textContent = updatedState.state_key;
+
+        // Reload states list to reflect changes
         await loadStates();
+
+        btn.innerHTML = '<i class="bi bi-check2"></i> Saved!';
+        setTimeout(() => { btn.innerHTML = originalHtml; }, 1500);
     } catch (error) {
-        console.error('Error updating state:', error);
-        alert('Error updating state');
+        console.error('Error saving state:', error);
+        btn.innerHTML = originalHtml;
+        alert('Error saving state: ' + error.message);
+    } finally {
+        btn.disabled = false;
     }
+}
+
+async function applyToBot() {
+    const btn = document.getElementById('apply-to-bot-btn');
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Applying...';
+
+    try {
+        const response = await fetch('/api/bot-constructor/apply-to-bot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || 'Failed to apply changes');
+        }
+
+        const result = await response.json();
+        showToast(`✅ ${result.message} (${result.states_updated} states)`, false);
+        btn.innerHTML = '<i class="bi bi-check2"></i> Applied!';
+        setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2000);
+    } catch (error) {
+        console.error('Error applying to bot:', error);
+        showToast('❌ ' + error.message, true);
+        btn.innerHTML = originalHtml;
+        btn.disabled = false;
+    }
+}
+
+function showToast(message, isError) {
+    const toastEl = document.getElementById(isError ? 'error-toast' : 'success-toast');
+    document.getElementById(isError ? 'error-toast-message' : 'toast-message').textContent = message;
+    const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
+    toast.show();
 }
 
 function renderButtons() {
