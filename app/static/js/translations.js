@@ -4,6 +4,7 @@ let translations = [];
 let categories = [];
 let languageId = null;
 let languageInfo = null;
+let allLanguages = [];
 
 // Load translations on page load
 document.addEventListener('DOMContentLoaded', function() {
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadLanguage();
         loadTranslations();
         loadCategories();
+        loadAllLanguages();
     }
     
     // Setup search
@@ -323,6 +325,90 @@ async function exportLanguage() {
     } catch (error) {
         console.error('Error exporting language:', error);
         showAlert(error.message, 'danger');
+    }
+}
+
+async function loadAllLanguages() {
+    try {
+        const response = await fetch('/api/languages/');
+        if (!response.ok) return;
+        allLanguages = await response.json();
+        populateAutoTranslateSource();
+    } catch (error) {
+        console.error('Error loading languages:', error);
+    }
+}
+
+function populateAutoTranslateSource() {
+    const select = document.getElementById('autoTranslateSource');
+    const options = allLanguages
+        .filter(l => l.id !== languageId)
+        .map(l => `<option value="${l.id}">${l.name} (${l.code})</option>`)
+        .join('');
+    select.innerHTML = options || '<option value="">No other languages available</option>';
+}
+
+async function generateDefaults() {
+    if (!confirm('This will add any missing default mini-app texts to this language. Existing translations will not be changed. Continue?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/languages/${languageId}/generate-defaults`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to generate defaults');
+        }
+
+        const result = await response.json();
+        showAlert(result.message, 'success');
+        loadTranslations();
+        loadCategories();
+    } catch (error) {
+        console.error('Error generating defaults:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function runAutoTranslate() {
+    const sourceId = document.getElementById('autoTranslateSource').value;
+    if (!sourceId) {
+        showAlert('Please select a source language', 'warning');
+        return;
+    }
+
+    const overwrite = document.getElementById('autoTranslateOverwrite').checked;
+    const btn = document.getElementById('autoTranslateBtn');
+    const progress = document.getElementById('autoTranslateProgress');
+
+    btn.disabled = true;
+    progress.classList.remove('d-none');
+
+    try {
+        const response = await fetch(
+            `/api/languages/${languageId}/auto-translate?source_language_id=${sourceId}&overwrite=${overwrite}`,
+            { method: 'POST' }
+        );
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Auto-translate failed');
+        }
+
+        const result = await response.json();
+        bootstrap.Modal.getInstance(document.getElementById('autoTranslateModal')).hide();
+        showAlert(`${result.message}${result.failed > 0 ? ` (${result.failed} failed)` : ''}`, 'success');
+        loadTranslations();
+        loadCategories();
+    } catch (error) {
+        console.error('Error running auto-translate:', error);
+        showAlert(error.message, 'danger');
+    } finally {
+        btn.disabled = false;
+        progress.classList.add('d-none');
     }
 }
 
